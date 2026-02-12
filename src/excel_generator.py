@@ -96,12 +96,19 @@ class ExcelGenerator:
         self.worksheet.cell(row=row, column=6, value=transaction.amount)
         # G: 成员 (空)
         self.worksheet.cell(row=row, column=7, value="")
-        # H: 商家 (空)
-        self.worksheet.cell(row=row, column=8, value="")
+        # H: 商家
+        merchant = getattr(transaction, 'merchant', None) or ""
+        self.worksheet.cell(row=row, column=8, value=merchant)
         # I: 项目 (空)
         self.worksheet.cell(row=row, column=9, value="")
-        # J: 备注
-        self.worksheet.cell(row=row, column=10, value=transaction.description)
+        # J: 备注 - 转账类型时显示目标账户
+        if transaction.transaction_type == "转账" and transaction.transfer_to_account:
+            remark = f"→ {transaction.transfer_to_account}"
+            if transaction.description:
+                remark = f"{remark} | {transaction.description}"
+        else:
+            remark = transaction.description
+        self.worksheet.cell(row=row, column=10, value=remark)
 
         self.start_row += 1
 

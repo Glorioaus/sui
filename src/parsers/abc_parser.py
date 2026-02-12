@@ -17,7 +17,7 @@ class ABCParser(BaseParser):
 
     def __init__(self, config_path: str = None):
         super().__init__(config_path)
-        self.account_name = "农行储蓄卡"
+        self.account_name = "农业银行"
 
     def parse(self, file_path: str) -> BankStatement:
         """

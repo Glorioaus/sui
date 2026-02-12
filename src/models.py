@@ -19,7 +19,9 @@ class Transaction:
     amount: float
     description: str
     transaction_type: str = "支出"
-    
+    transfer_to_account: Optional[str] = None  # 转账目标账户（仅转账类型使用）
+    merchant: Optional[str] = None  # 商户名称（用于退款匹配）
+
     def to_dict(self) -> dict:
         """
         转换为字典格式
@@ -31,7 +33,9 @@ class Transaction:
             "account": self.account,
             "amount": self.amount,
             "description": self.description,
-            "transaction_type": self.transaction_type
+            "transaction_type": self.transaction_type,
+            "transfer_to_account": self.transfer_to_account,
+            "merchant": self.merchant
         }
 
 
