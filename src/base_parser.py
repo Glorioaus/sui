@@ -13,52 +13,60 @@ class BaseParser(ABC):
     """
     基础解析器抽象类
     """
-    
+
     def __init__(self, config_path: str = None):
         """
         初始化解析器
         """
-        self.category_mapping = self._load_category_mapping(config_path)
-    
-    def _load_category_mapping(self, config_path: str) -> dict:
+        self.expense_mapping = self._load_category_mapping("category_mapping.json")
+        self.income_mapping = self._load_category_mapping("category_mapping_income.json")
+
+    def _load_category_mapping(self, filename: str) -> dict:
         """
         加载分类映射配置文件
         """
-        if config_path is None:
-            config_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                "..",
-                "config",
-                "category_mapping.json"
-            )
-        
+        config_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "config",
+            filename
+        )
+
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except FileNotFoundError:
             print(f"警告：配置文件 {config_path} 未找到，使用默认分类")
-            return {"其他": {"未分类": []}}
+            return {}
         except json.JSONDecodeError as e:
             print(f"警告：配置文件解析失败 {e}，使用默认分类")
-            return {"其他": {"未分类": []}}
-    
-    def match_category(self, description: str) -> Tuple[str, str]:
+            return {}
+
+    def match_category(self, description: str, is_income: bool = False) -> Tuple[str, str]:
         """
         根据交易描述匹配分类和子分类
         返回：(分类, 子分类)
+
+        Args:
+            description: 交易描述
+            is_income: 是否为收入类型
         """
         if not description:
-            return "其他", "未分类"
-        
+            if is_income:
+                return "其他收入", "意外来钱"
+            return "其他杂项", "其他支出"
+
         description_lower = description.lower()
-        
-        for category, subcategories in self.category_mapping.items():
-            for subcategory, keywords in subcategories.items():
-                for keyword in keywords:
-                    if keyword.lower() in description_lower:
-                        return category, subcategory
-        
-        return "其他", "未分类"
+        mapping = self.income_mapping if is_income else self.expense_mapping
+
+        for category, subcategories in mapping.items():
+            for subcategory in subcategories:
+                if subcategory.lower() in description_lower:
+                    return category, subcategory
+
+        # 默认分类
+        if is_income:
+            return "其他收入", "意外来钱"
+        return "其他杂项", "其他支出"
     
     def parse_date(self, date_str: str) -> str:
         """
