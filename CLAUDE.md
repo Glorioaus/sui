@@ -29,8 +29,26 @@ python src/main.py input/ output/
 
 ### 测试农行解析器
 ```bash
-python test_abc.py
+python src/main.py input/农行-xxx.pdf output/
 ```
+
+### 批量处理
+```bash
+python src/main.py input/ output/
+```
+
+## 文件命名规则
+
+解析器通过文件名自动识别银行类型：
+
+| 文件名模式 | 解析器 | 说明 |
+|-----------|--------|------|
+| `农行*.pdf` | ABCParser | 农业银行储蓄卡 |
+| `浦发*.pdf` | SPDBParser | 浦发信用卡 |
+| `*账单*.pdf` | SPDBParser | 浦发信用卡（账单格式）|
+| `中信*.pdf` | CITICParser | 中信银行 |
+| `建行*.csv` | CCBParser | 建设银行 |
+| `宁波*.xlsx` | BOCParser | 宁波银行 |
 
 ## 高层代码架构
 
@@ -49,6 +67,7 @@ python test_abc.py
    - 银行专用解析器位于 `src/parsers/`:
      - `CCBParser`: 建设银行 (CSV格式)
      - `ABCParser`: 农业银行 (PDF格式) ✅ 已实现
+     - `SPDBParser`: 浦发信用卡 (PDF格式) ✅ 已实现
      - `BOCParser`: 宁波银行 (Excel格式)
      - `CITICParser`: 中信银行 (PDF格式)
    - 每个解析器实现 `parse()` 方法，将原始文件转换为 `BankStatement` 对象
@@ -101,3 +120,14 @@ python test_abc.py
 - 微信 → 账单导入-微信账单导入
 - 支付宝 → 账单导入-支付宝账单导入
 - 短信费 → 交流通讯-手机费
+
+### 浦发信用卡解析器特殊规则
+
+**交易类型处理：**
+| 类型 | 识别规则 | 处理方式 |
+|------|----------|----------|
+| 消费 | 正金额 | 支出 |
+| 还款 | 描述含"还款" | 跳过 |
+| 红包抵扣 | 负金额 + "分润金/抵扣" | 收入（抢红包）|
+| 退款 | 负金额 + 同商户同金额 | 与消费对冲 |
+| 未匹配退款 | 负金额 + 无匹配 | 收入（退款）|

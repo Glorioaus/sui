@@ -1,14 +1,35 @@
 {
-  "建行信用卡": "建行信用卡",
-  "农行储蓄卡": "农业银行",
-  "宁波银行": "宁波银行",
-  "中信信用卡": "中信",
-  "建行储蓄卡": "建行储蓄卡",
-  "工商储蓄卡": "工商储蓄卡",
-  "招商储蓄卡": "招商储蓄卡",
-  "微信": "微信",
-  "余额宝": "余额宝",
-  "支付宝": "花呗",
-  "浦发信用卡": "浦发信用卡",
-  "招商信用卡": "招商信用卡"
+  "accounts": [
+    {"id": 0, "name": "现金", "type": "cash"},
+    {"id": 1, "name": "宁波银行", "type": "debit"},
+    {"id": 2, "name": "农业银行", "type": "debit"},
+    {"id": 3, "name": "农村信用合作社", "type": "debit"},
+    {"id": 4, "name": "建行储蓄卡", "type": "debit"},
+    {"id": 5, "name": "工商储蓄卡", "type": "debit"},
+    {"id": 6, "name": "招商储蓄卡", "type": "debit"},
+    {"id": 7, "name": "微信", "type": "wallet"},
+    {"id": 8, "name": "余额宝", "type": "wallet"},
+    {"id": 9, "name": "家庭支援", "type": "virtual"},
+    {"id": 10, "name": "中信信用卡", "type": "credit"},
+    {"id": 11, "name": "花呗", "type": "credit"},
+    {"id": 12, "name": "京东白条", "type": "credit"},
+    {"id": 13, "name": "建行信用卡", "type": "credit"},
+    {"id": 14, "name": "应付款项", "type": "liability"},
+    {"id": 15, "name": "浦发信用卡", "type": "credit"},
+    {"id": 16, "name": "招商信用卡", "type": "credit"},
+    {"id": 17, "name": "家庭使用", "type": "virtual"},
+    {"id": 18, "name": "应收款项", "type": "asset"},
+    {"id": 19, "name": "基金", "type": "investment"},
+    {"id": 20, "name": "股票账户", "type": "investment"}
+  ],
+  "type_labels": {
+    "cash": "现金",
+    "debit": "储蓄卡",
+    "credit": "信用卡",
+    "wallet": "电子钱包",
+    "virtual": "虚拟账户",
+    "liability": "负债",
+    "asset": "资产",
+    "investment": "投资"
+  }
 }
