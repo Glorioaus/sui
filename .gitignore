@@ -13,7 +13,8 @@ __pycache__/
 
 # 输出目录
 output/
-
+# 输入目录
+input/
 # IDE配置
 .idea/
 .vscode/

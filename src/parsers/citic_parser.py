@@ -14,14 +14,14 @@ class CITICParser(BaseParser):
     中信银行信用卡解析器
     支持PDF格式的信用卡月账单
 
-    金额规则（与招商相反）：
-    - 负金额 = 支出（消费）或优惠/返现（收入）
-    - 正金额 = 退款
+    金额规则：
+    - 正金额 = 支出（消费，增加应还款）
+    - 负金额 = 返现/优惠（减少应还款）
 
     特殊处理：
     - 信用卡还款 → 跳过
-    - 退款（正金额）→ 与消费对冲
-    - 优惠/返现（负金额）→ 收入
+    - 退款（需通过描述判断）→ 与消费对冲
+    - 返现/优惠（负金额）→ 收入
     """
 
     def __init__(self, config_path: str = None):
@@ -135,13 +135,50 @@ class CITICParser(BaseParser):
             else:
                 # 检查是否是描述的延续（下一行开头）
                 # 如果当前行不是交易行，但看起来像描述的一部分
-                if not re.match(r'^\d{8}', line) and not any(x in line for x in ['账单日', 'Statement', '卡号', '第', '页', '【', '】', 'CNY交易', '交易日', 'Trans Date']):
-                    # 可能是上一笔交易描述的延续或下一笔的前缀
-                    # 由于PDF提取的特点，描述可能在交易行之前
-                    clean_line = line.strip()
-                    if clean_line and len(clean_line) > 2:
-                        # 检查下一行是否会是交易行
-                        pending_description = clean_line
+                skip_keywords = ['账单日', 'Statement', '卡号', '第', '页', '【', '】', 'CNY交易', '交易日', 'Trans Date', '信用额度', '可用额度', '到期还款日', '本期应还', '最低还款', '账单周期', 'Min.', 'Payment', 'Balance', 'Charge', 'Previous', 'Card Number', 'Description', 'Trx.Amt', 'Setl.Amt', '本期账单']
+
+                # 跳过非交易行（以8位数字开头但不匹配完整交易格式）
+                if re.match(r'^\d{8}', line):
+                    pending_description = ""
+                    continue
+
+                # 跳过包含关键词的行
+                if any(x in line for x in skip_keywords):
+                    pending_description = ""
+                    continue
+
+                # 跳过卡片余额汇总行（格式: 卡号 CNY 多个金额）
+                # 例如: "6229-19**-****-2359 CNY 41253.56 39253.56 127.02 2127.02 106.35"
+                if re.match(r'^\d{4}[-*\d]+\s+CNY\s+[\d.]+\s+[\d.]+', line):
+                    pending_description = ""
+                    continue
+
+                # 跳过包含多个金额的余额行
+                if line.count('CNY') >= 1 and len(re.findall(r'\d+\.\d{2}', line)) >= 3:
+                    pending_description = ""
+                    continue
+
+                # 跳过以CNY开头的金额行（如 "CNY 106.35"）
+                if re.match(r'^CNY\s+[\d.]+', line.strip()):
+                    pending_description = ""
+                    continue
+
+                # 跳过纯金额行（只有数字和小数点）
+                if re.match(r'^[\d\s.]+$', line.strip()):
+                    pending_description = ""
+                    continue
+
+                # 跳过含卡号模式的行（如 "卡号 6229-19**-****-2359" 或 "6229-..."）
+                if re.search(r'\d{4}[-*]+\d', line):
+                    pending_description = ""
+                    continue
+
+                # 可能是上一笔交易描述的延续或下一笔的前缀
+                # 由于PDF提取的特点，描述可能在交易行之前
+                clean_line = line.strip()
+                if clean_line and len(clean_line) > 2:
+                    # 检查下一行是否会是交易行
+                    pending_description = clean_line
 
         return transactions
 
@@ -149,52 +186,53 @@ class CITICParser(BaseParser):
         """
         处理退款对冲逻辑：
         1. 信用卡还款 → 跳过
-        2. 优惠/返现（负金额）→ 收入
-        3. 退款（正金额）→ 尝试与同商户消费对冲
-        4. 返现取消（正金额）→ 与对应的返现对冲
+        2. 返现/优惠（负金额）→ 收入
+        3. 退款（正金额 + 退款关键词）→ 尝试与同商户消费对冲
+        4. 正常消费（正金额）→ 支出
         """
         # 分类交易
-        expenses = []      # 正常消费（负金额）
-        refunds = []       # 退款（正金额，待对冲）
-        incomes = []       # 优惠/返现（负金额但是收入）
-        cashback_cancels = []  # 返现取消（正金额）
+        expenses = []      # 正常消费（正金额）
+        refunds = []       # 退款（正金额，含退款关键词，待对冲）
+        incomes = []       # 返现/优惠（负金额）
         skip_count = 0
 
-        # 优惠/返现关键词
-        income_keywords = ['精彩笔笔返', '返现金', '指定银联手机Pay返现', '现金奖励']
-        # 返现取消关键词
-        cancel_keywords = ['返现取消', '撤销支付券']
+        # 返现/优惠关键词
+        income_keywords = ['精彩笔笔返', '返现金', '指定银联手机Pay返现', '现金奖励', '支付券', '立减']
+        # 退款关键词
+        refund_keywords = ['退款', '退货', '撤销']
+
+        repayments = []    # 还款记录（负金额，保留用于merge匹配）
 
         for tx in raw_transactions:
             desc = tx['description']
             amount = tx['amount']
 
-            # 跳过信用卡还款
-            if '还款' in desc:
-                skip_count += 1
-                print(f"  跳过还款: {desc} {amount}")
+            # 信用卡还款（负金额，含"还款"关键词）
+            # 保留为收入记录，供merge.py匹配转账来源
+            if '还款' in desc and '还款日' not in desc:
+                if amount < 0:
+                    repayments.append(tx)
+                    print(f"  还款记录: {desc} {amount}")
+                else:
+                    skip_count += 1
+                    print(f"  跳过还款: {desc} {amount}")
                 continue
 
-            # 负金额处理
+            # 负金额处理 = 返现/优惠（收入）
             if amount < 0:
-                # 检查是否是优惠/返现
-                if any(k in desc for k in income_keywords):
-                    incomes.append(tx)
-                else:
-                    # 正常消费
-                    expenses.append(tx)
+                incomes.append(tx)
                 continue
 
             # 正金额处理
             if amount > 0:
-                # 检查是否是返现取消
-                if any(k in desc for k in cancel_keywords):
-                    cashback_cancels.append(tx)
-                else:
-                    # 普通退款
+                # 检查是否是退款（含退款关键词）
+                if any(k in desc for k in refund_keywords):
                     refunds.append(tx)
+                else:
+                    # 正常消费
+                    expenses.append(tx)
 
-        # 对冲退款
+        # 对冲退款（退款与消费对冲）
         matched_expense_indices = set()
         matched_refund_indices = set()
 
@@ -202,42 +240,20 @@ class CITICParser(BaseParser):
             refund_amount = refund['amount']  # 正金额
             refund_merchant = self._extract_merchant(refund['description'])
 
-            # 查找同商户、同金额的消费（消费是负金额）
+            # 查找同商户、同金额的消费
             for ei, expense in enumerate(expenses):
                 if ei in matched_expense_indices:
                     continue
 
                 expense_merchant = self._extract_merchant(expense['description'])
-                expense_amount = abs(expense['amount'])  # 转为正数比较
 
-                if (abs(expense_amount - refund_amount) < 0.01 and
+                if (abs(expense['amount'] - refund_amount) < 0.01 and
                     refund_merchant and expense_merchant and
                     refund_merchant == expense_merchant):
                     # 对冲成功
                     matched_expense_indices.add(ei)
                     matched_refund_indices.add(ri)
                     print(f"  对冲: {expense['description']} {expense['amount']} <-> 退款 {refund['amount']}")
-                    break
-
-        # 对冲返现取消（与收入对冲）
-        matched_income_indices = set()
-        matched_cancel_indices = set()
-
-        for ci, cancel in enumerate(cashback_cancels):
-            cancel_amount = cancel['amount']  # 正金额
-
-            # 查找同金额的返现收入（负金额）
-            for ii, income in enumerate(incomes):
-                if ii in matched_income_indices:
-                    continue
-
-                income_amount = abs(income['amount'])
-
-                if abs(income_amount - cancel_amount) < 0.01:
-                    # 对冲成功
-                    matched_income_indices.add(ii)
-                    matched_cancel_indices.add(ci)
-                    print(f"  对冲返现: {income['description']} {income['amount']} <-> 取消 {cancel['amount']}")
                     break
 
         # 生成最终交易列表
@@ -247,19 +263,22 @@ class CITICParser(BaseParser):
         for i, exp in enumerate(expenses):
             if i not in matched_expense_indices:
                 category, subcategory = self._categorize(exp['description'], False)
+                merchant = self._extract_merchant(exp['description'])
                 result.append(Transaction(
                     date=exp['date'],
                     category=category,
                     subcategory=subcategory,
                     account=self.account_name,
-                    amount=abs(exp['amount']),
+                    amount=abs(exp['amount']),  # 统一取绝对值
                     description=exp['description'],
-                    transaction_type="支出"
+                    transaction_type="支出",
+                    merchant=merchant
                 ))
 
         # 添加未对冲的退款（作为收入）
         for i, ref in enumerate(refunds):
             if i not in matched_refund_indices:
+                merchant = self._extract_merchant(ref['description'])
                 result.append(Transaction(
                     date=ref['date'],
                     category="其他收入",
@@ -267,39 +286,38 @@ class CITICParser(BaseParser):
                     account=self.account_name,
                     amount=ref['amount'],
                     description=ref['description'] + " (未匹配退款)",
-                    transaction_type="收入"
+                    transaction_type="收入",
+                    merchant=merchant
                 ))
 
-        # 添加未对冲的优惠/返现收入
-        for i, inc in enumerate(incomes):
-            if i not in matched_income_indices:
-                result.append(Transaction(
-                    date=inc['date'],
-                    category="其他收入",
-                    subcategory="抢红包",
-                    account=self.account_name,
-                    amount=abs(inc['amount']),
-                    description=inc['description'],
-                    transaction_type="收入"
-                ))
+        # 添加返现/优惠收入
+        for inc in incomes:
+            result.append(Transaction(
+                date=inc['date'],
+                category="其他收入",
+                subcategory="抢红包",
+                account=self.account_name,
+                amount=abs(inc['amount']),
+                description=inc['description'],
+                transaction_type="收入"
+            ))
 
-        # 添加未对冲的返现取消（作为支出）
-        for i, cancel in enumerate(cashback_cancels):
-            if i not in matched_cancel_indices:
-                result.append(Transaction(
-                    date=cancel['date'],
-                    category="其他杂项",
-                    subcategory="其他支出",
-                    account=self.account_name,
-                    amount=cancel['amount'],
-                    description=cancel['description'] + " (未匹配取消)",
-                    transaction_type="支出"
-                ))
+        # 添加还款记录（用于merge.py匹配转账来源）
+        for rep in repayments:
+            result.append(Transaction(
+                date=rep['date'],
+                category="__REPAYMENT__",  # 特殊标记，merge.py匹配后会删除
+                subcategory="还款",
+                account=self.account_name,
+                amount=abs(rep['amount']),
+                description=rep['description'],
+                transaction_type="收入"
+            ))
 
         print(f"  跳过还款: {skip_count} 笔")
+        print(f"  保留还款记录: {len(repayments)} 笔（用于匹配）")
         print(f"  对冲退款: {len(matched_refund_indices)} 笔")
-        print(f"  对冲返现取消: {len(matched_cancel_indices)} 笔")
-        print(f"  优惠收入: {len(incomes) - len(matched_income_indices)} 笔")
+        print(f"  返现收入: {len(incomes)} 笔")
 
         return result
 

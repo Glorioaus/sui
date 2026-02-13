@@ -6,7 +6,7 @@ import os
 import sys
 import re
 from typing import Optional
-from parsers import CCBParser, ABCParser, BOCParser, CITICParser, CMBParser
+from parsers import CCBParser, CCBCreditParser, ABCParser, BOCParser, CITICParser, CMBParser, WeChatParser, AlipayParser
 from parsers.spdb_parser import SPDBParser
 from excel_generator import ExcelGenerator
 from models import BankStatement
@@ -41,9 +41,12 @@ FILE_PATTERNS = [
     (r'浦发.*\.pdf$', SPDBParser, "浦发信用卡"),
     (r'招商.*\.pdf$', CMBParser, "招商信用卡"),
     (r'中信.*\.pdf$', CITICParser, "中信银行"),
+    (r'建行信用卡.*\.pdf$', CCBCreditParser, "建行信用卡"),
     (r'.*账单.*\.pdf$', SPDBParser, "浦发信用卡(账单)"),  # 通用账单格式放最后
-    (r'建行.*\.csv$', CCBParser, "建设银行"),
+    (r'建行.*\.csv$', CCBParser, "建设银行储蓄卡"),
     (r'宁波.*\.xlsx?$', BOCParser, "宁波银行"),
+    (r'微信.*\.xlsx?$', WeChatParser, "微信支付"),
+    (r'支付宝.*\.csv$', AlipayParser, "支付宝"),
 ]
 
 
@@ -70,13 +73,16 @@ class SuiConverter:
         # 未匹配，提示用户
         print(f"无法识别文件类型: {filename}")
         print("支持的命名格式:")
-        print("  - 农行*.pdf     → 农业银行储蓄卡")
-        print("  - 浦发*.pdf     → 浦发信用卡")
-        print("  - *账单*.pdf    → 浦发信用卡")
-        print("  - 招商*.pdf     → 招商信用卡")
-        print("  - 中信*.pdf     → 中信银行")
-        print("  - 建行*.csv     → 建设银行")
-        print("  - 宁波*.xlsx    → 宁波银行")
+        print("  - 农行*.pdf       → 农业银行储蓄卡")
+        print("  - 浦发*.pdf       → 浦发信用卡")
+        print("  - *账单*.pdf      → 浦发信用卡")
+        print("  - 招商*.pdf       → 招商信用卡")
+        print("  - 中信*.pdf       → 中信银行")
+        print("  - 建行信用卡*.pdf → 建行信用卡")
+        print("  - 建行*.csv       → 建设银行储蓄卡")
+        print("  - 宁波*.xlsx      → 宁波银行")
+        print("  - 微信*.xlsx      → 微信支付")
+        print("  - 支付宝*.csv     → 支付宝")
         return None
 
     def process_file(self, input_path: str, output_path: str) -> bool:
@@ -171,13 +177,16 @@ def main():
         print("  python src/main.py input/农行-xxx.pdf output/")
         print("  python src/main.py input/ output/")
         print("\n文件命名规则:")
-        print("  农行*.pdf     → 农业银行储蓄卡")
-        print("  浦发*.pdf     → 浦发信用卡")
-        print("  *账单*.pdf    → 浦发信用卡")
-        print("  招商*.pdf     → 招商信用卡")
-        print("  中信*.pdf     → 中信银行")
-        print("  建行*.csv     → 建设银行")
-        print("  宁波*.xlsx    → 宁波银行")
+        print("  农行*.pdf       → 农业银行储蓄卡")
+        print("  浦发*.pdf       → 浦发信用卡")
+        print("  *账单*.pdf      → 浦发信用卡")
+        print("  招商*.pdf       → 招商信用卡")
+        print("  中信*.pdf       → 中信银行")
+        print("  建行信用卡*.pdf → 建行信用卡")
+        print("  建行*.csv       → 建设银行储蓄卡")
+        print("  宁波*.xlsx      → 宁波银行")
+        print("  微信*.xlsx      → 微信支付")
+        print("  支付宝*.csv     → 支付宝")
         return
 
     input_path = sys.argv[1]

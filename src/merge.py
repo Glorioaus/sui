@@ -25,56 +25,186 @@ TRANSFER_KEYWORDS = {
     "建行卡": "建行信用卡",
     "花呗": "花呗",
     "京东白条": "京东白条",
+    "微信": "微信",
+    "零钱": "微信",
+    "支付宝": "支付宝",
+    "余额宝": "支付宝",
     "信用卡还款": None,  # 通用信用卡还款
     "还款": None,
+    "跨行还款": None,  # 需要通过金额匹配确定目标
 }
 
 # 储蓄卡账户列表（转账来源）
 DEBIT_ACCOUNTS = ["农业银行", "宁波银行", "建行储蓄卡", "工商储蓄卡", "招商储蓄卡", "农村信用合作社"]
 
-# 信用卡账户列表（转账目标）
-CREDIT_ACCOUNTS = ["中信信用卡", "浦发信用卡", "招商信用卡", "建行信用卡", "花呗", "京东白条"]
+# 信用卡/钱包账户列表（转账目标）
+CREDIT_ACCOUNTS = ["中信信用卡", "浦发信用卡", "招商信用卡", "建行信用卡", "信用卡", "花呗", "京东白条", "微信", "支付宝"]
 
 
 def read_excel_transactions(file_path: str) -> List[Transaction]:
     """
     从Excel文件读取交易记录
+    支持新格式（3个Sheet：支出、收入、转账）
     """
     transactions = []
     try:
         wb = openpyxl.load_workbook(file_path, read_only=True)
-        ws = wb.active
 
-        # 跳过表头，从第2行开始
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            if row[0] is None:  # 跳过空行
-                continue
+        # 检查是否是新格式（有支出/收入/转账 sheet）
+        sheet_names = wb.sheetnames
+        is_new_format = "支出" in sheet_names or "收入" in sheet_names or "转账" in sheet_names
 
-            # 解析日期
-            date_val = row[0]
-            if isinstance(date_val, datetime):
-                date_str = date_val.strftime("%Y-%m-%d")
-            else:
-                date_str = str(date_val)
-
-            # 解析金额
-            amount = float(row[5]) if row[5] else 0.0
-
-            transaction = Transaction(
-                date=date_str,
-                category=str(row[1] or ""),
-                subcategory=str(row[3] or ""),
-                account=str(row[4] or ""),
-                amount=amount,
-                description=str(row[9] or ""),
-                transaction_type=str(row[2] or "支出"),
-                merchant=str(row[7] or ""),
-            )
-            transactions.append(transaction)
+        if is_new_format:
+            # 新格式：读取3个sheet
+            transactions.extend(_read_expense_sheet(wb, sheet_names))
+            transactions.extend(_read_income_sheet(wb, sheet_names))
+            transactions.extend(_read_transfer_sheet(wb, sheet_names))
+        else:
+            # 旧格式：读取单个活动sheet
+            transactions.extend(_read_legacy_sheet(wb))
 
         wb.close()
     except Exception as e:
         print(f"读取文件失败 {file_path}: {e}")
+
+    return transactions
+
+
+def _read_expense_sheet(wb, sheet_names: List[str]) -> List[Transaction]:
+    """读取支出sheet"""
+    transactions = []
+    if "支出" not in sheet_names:
+        return transactions
+
+    ws = wb["支出"]
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if row[0] is None:
+            continue
+
+        # 支出格式: 交易类型(0), 日期(1), 分类(2), 子分类(3), 支出账户(4), 金额(5), 成员(6), 商家(7), 项目(8), 备注(9)
+        date_val = row[1]
+        if isinstance(date_val, datetime):
+            date_str = date_val.strftime("%Y-%m-%d")
+        else:
+            date_str = str(date_val).split()[0] if date_val else ""
+
+        amount = float(row[5]) if row[5] else 0.0
+
+        transaction = Transaction(
+            date=date_str,
+            category=str(row[2] or ""),
+            subcategory=str(row[3] or ""),
+            account=str(row[4] or ""),
+            amount=amount,
+            description=str(row[9] or "") if len(row) > 9 else "",
+            transaction_type="支出",
+            merchant=str(row[7] or "") if len(row) > 7 else "",
+        )
+        transactions.append(transaction)
+
+    return transactions
+
+
+def _read_income_sheet(wb, sheet_names: List[str]) -> List[Transaction]:
+    """读取收入sheet"""
+    transactions = []
+    if "收入" not in sheet_names:
+        return transactions
+
+    ws = wb["收入"]
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if row[0] is None:
+            continue
+
+        # 收入格式: 交易类型(0), 日期(1), 分类(2), 子分类(3), 收入账户(4), 金额(5), 成员(6), 商家(7), 项目(8), 备注(9)
+        date_val = row[1]
+        if isinstance(date_val, datetime):
+            date_str = date_val.strftime("%Y-%m-%d")
+        else:
+            date_str = str(date_val).split()[0] if date_val else ""
+
+        amount = float(row[5]) if row[5] else 0.0
+
+        transaction = Transaction(
+            date=date_str,
+            category=str(row[2] or ""),
+            subcategory=str(row[3] or ""),
+            account=str(row[4] or ""),
+            amount=amount,
+            description=str(row[9] or "") if len(row) > 9 else "",
+            transaction_type="收入",
+            merchant=str(row[7] or "") if len(row) > 7 else "",
+        )
+        transactions.append(transaction)
+
+    return transactions
+
+
+def _read_transfer_sheet(wb, sheet_names: List[str]) -> List[Transaction]:
+    """读取转账sheet"""
+    transactions = []
+    if "转账" not in sheet_names:
+        return transactions
+
+    ws = wb["转账"]
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if row[0] is None:
+            continue
+
+        # 转账格式: 交易类型(0), 日期(1), 转出账户(2), 转入账户(3), 金额(4), 成员(5), 商家(6), 项目(7), 备注(8)
+        date_val = row[1]
+        if isinstance(date_val, datetime):
+            date_str = date_val.strftime("%Y-%m-%d")
+        else:
+            date_str = str(date_val).split()[0] if date_val else ""
+
+        amount = float(row[4]) if row[4] else 0.0
+
+        transaction = Transaction(
+            date=date_str,
+            category="转账",
+            subcategory="",
+            account=str(row[2] or ""),  # 转出账户
+            amount=amount,
+            description=str(row[8] or "") if len(row) > 8 else "",
+            transaction_type="转账",
+            transfer_to_account=str(row[3] or ""),  # 转入账户
+            merchant=str(row[6] or "") if len(row) > 6 else "",
+        )
+        transactions.append(transaction)
+
+    return transactions
+
+
+def _read_legacy_sheet(wb) -> List[Transaction]:
+    """读取旧格式的单个sheet"""
+    transactions = []
+    ws = wb.active
+
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if row[0] is None:
+            continue
+
+        # 旧格式: 交易日期(0), 分类(1), 类型(2), 子分类(3), 支付账户(4), 金额(5), 成员(6), 商家(7), 项目(8), 备注(9)
+        date_val = row[0]
+        if isinstance(date_val, datetime):
+            date_str = date_val.strftime("%Y-%m-%d")
+        else:
+            date_str = str(date_val)
+
+        amount = float(row[5]) if row[5] else 0.0
+
+        transaction = Transaction(
+            date=date_str,
+            category=str(row[1] or ""),
+            subcategory=str(row[3] or ""),
+            account=str(row[4] or ""),
+            amount=amount,
+            description=str(row[9] or ""),
+            transaction_type=str(row[2] or "支出"),
+            merchant=str(row[7] or ""),
+        )
+        transactions.append(transaction)
 
     return transactions
 
@@ -121,10 +251,28 @@ def normalize_merchant(merchant: str, description: str) -> str:
     return text.strip().lower()
 
 
+def is_masked_or_person_name(merchant: str) -> bool:
+    """
+    检查商户名是否是脱敏的或人名
+    脱敏格式如：天猫**营、淘宝**店
+    人名通常是2-4个汉字
+    """
+    if not merchant:
+        return False
+    # 脱敏商户名（含**）
+    if "**" in merchant:
+        return True
+    # 短名称可能是人名（2-4个汉字）
+    if len(merchant) <= 4 and all('\u4e00' <= c <= '\u9fff' for c in merchant):
+        return True
+    return False
+
+
 def reconcile_refunds(transactions: List[Transaction]) -> List[Transaction]:
     """
     执行退款对冲
-    匹配条件：同商户 + 同金额（容差0.01元）
+    第一轮：同商户 + 同金额（精确匹配）
+    第二轮：脱敏/人名商户 + 同金额 + 日期接近（模糊匹配）
     结果：匹配成功的消费和退款都删除
     """
     print("\n=== 开始退款对冲 ===")
@@ -147,7 +295,9 @@ def reconcile_refunds(transactions: List[Transaction]) -> List[Transaction]:
     # 记录要删除的索引
     to_remove = set()
     matched_count = 0
+    fuzzy_matched_count = 0
 
+    # 第一轮：精确商户匹配
     for ref_idx, refund in refunds:
         if ref_idx in to_remove:
             continue
@@ -163,17 +313,45 @@ def reconcile_refunds(transactions: List[Transaction]) -> List[Transaction]:
             # 匹配条件：商户相似 + 金额相同
             if ref_merchant and exp_merchant and ref_merchant == exp_merchant:
                 if amounts_match(refund.amount, expense.amount):
-                    print(f"  对冲匹配: [{expense.date}] {expense.merchant or expense.description[:20]} "
-                          f"¥{expense.amount} <-> [{refund.date}] 退款 ¥{refund.amount}")
+                    desc = (expense.merchant or expense.description[:20]).encode('gbk', errors='replace').decode('gbk')
+                    print(f"  精确匹配: [{expense.date}] {desc} "
+                          f"{expense.amount} <-> [{refund.date}] 退款 {refund.amount}")
                     to_remove.add(ref_idx)
                     to_remove.add(exp_idx)
                     matched_count += 1
                     break
 
+    # 第二轮：模糊匹配（针对脱敏商户名或人名）
+    for ref_idx, refund in refunds:
+        if ref_idx in to_remove:
+            continue
+
+        ref_merchant = refund.merchant or ""
+
+        # 只对脱敏商户名或人名进行模糊匹配
+        if not is_masked_or_person_name(ref_merchant):
+            continue
+
+        # 按金额匹配 + 日期接近（±30天，因为退款可能很晚）
+        for exp_idx, expense in expenses:
+            if exp_idx in to_remove:
+                continue
+
+            if amounts_match(refund.amount, expense.amount):
+                if dates_within_range(refund.date, expense.date, days=30):
+                    desc = (expense.merchant or expense.description[:20]).encode('gbk', errors='replace').decode('gbk')
+                    print(f"  模糊匹配: [{expense.date}] {desc} "
+                          f"{expense.amount} <-> [{refund.date}] 退款({ref_merchant}) {refund.amount}")
+                    to_remove.add(ref_idx)
+                    to_remove.add(exp_idx)
+                    fuzzy_matched_count += 1
+                    break
+
     # 过滤掉已对冲的记录
     result = [t for i, t in enumerate(transactions) if i not in to_remove]
 
-    print(f"退款对冲完成：{matched_count} 对匹配，删除 {len(to_remove)} 条记录")
+    print(f"退款对冲完成：精确匹配 {matched_count} 对，模糊匹配 {fuzzy_matched_count} 对")
+    print(f"  删除 {len(to_remove)} 条记录")
     return result
 
 
@@ -201,22 +379,38 @@ def identify_transfers(transactions: List[Transaction]) -> List[Transaction]:
     - 账户B有"收入"或被识别为还款
     - 金额相同，日期接近（±3天）
     结果：删除两条记录，生成一条转账记录
+
+    新增：对于"跨行还款"等无明确目标的记录，通过金额+日期匹配信用卡还款记录来确定目标
     """
     print("\n=== 开始转账识别 ===")
 
     # 分离储蓄卡支出（可能是转账）
-    debit_expenses = []  # (index, transaction, potential_target)
+    debit_expenses_with_target = []  # (index, transaction, target) - 有明确目标
+    debit_expenses_need_match = []   # (index, transaction) - 需要通过匹配确定目标
     credit_incomes = []  # (index, transaction)
 
     for i, t in enumerate(transactions):
         # 储蓄卡支出
         if t.account in DEBIT_ACCOUNTS and t.transaction_type == "支出":
+            # 跳过已被分类为按揭还款的交易（避免误识别为信用卡转账）
+            if t.category == "金融保险" and t.subcategory == "按揭还款":
+                continue
+
             target = identify_transfer_target(t.description)
             if target:
-                debit_expenses.append((i, t, target))
+                # 有明确目标（如"中信" → 中信信用卡）
+                debit_expenses_with_target.append((i, t, target))
+            else:
+                # 检查是否含还款关键词但无明确目标
+                desc = (t.description or "").lower()
+                if "跨行还款" in desc or "还款" in desc or "信用卡" in desc:
+                    debit_expenses_need_match.append((i, t))
 
-        # 信用卡收入（还款）
+        # 信用卡收入（还款）- 包括普通收入和特殊标记的还款记录
         if t.account in CREDIT_ACCOUNTS and t.transaction_type == "收入":
+            credit_incomes.append((i, t))
+        # 特殊还款标记（来自信用卡解析器，用于匹配后删除）
+        elif t.category == "__REPAYMENT__" and t.transaction_type == "收入":
             credit_incomes.append((i, t))
 
     # 记录要删除的索引和新增的转账记录
@@ -224,80 +418,234 @@ def identify_transfers(transactions: List[Transaction]) -> List[Transaction]:
     transfers = []
     matched_count = 0
 
-    for exp_idx, expense, target in debit_expenses:
+    # 第一轮：处理有明确目标的转账
+    for exp_idx, expense, target in debit_expenses_with_target:
         if exp_idx in to_remove:
             continue
 
         matched_income = False
 
-        # 如果有明确目标账户，先尝试匹配信用卡收入
-        if target:
-            for inc_idx, income in credit_incomes:
-                if inc_idx in to_remove:
-                    continue
+        # 尝试匹配信用卡收入
+        for inc_idx, income in credit_incomes:
+            if inc_idx in to_remove:
+                continue
 
-                # 检查是否是目标账户
-                if income.account != target:
-                    continue
+            # 检查是否是目标账户
+            if income.account != target:
+                continue
 
-                # 检查金额和日期
-                if amounts_match(expense.amount, income.amount) and \
-                   dates_within_range(expense.date, income.date):
-                    print(f"  转账匹配: [{expense.date}] {expense.account} → {income.account} "
-                          f"¥{expense.amount}")
+            # 检查金额和日期
+            if amounts_match(expense.amount, income.amount) and \
+               dates_within_range(expense.date, income.date):
+                print(f"  转账匹配: [{expense.date}] {expense.account} -> {income.account} "
+                      f"{expense.amount}")
 
-                    # 创建转账记录
-                    transfer = Transaction(
-                        date=expense.date,
-                        category="转账",
-                        subcategory="还款",
-                        account=expense.account,
-                        amount=expense.amount,
-                        description=expense.description,
-                        transaction_type="转账",
-                        transfer_to_account=income.account,
-                    )
-                    transfers.append(transfer)
+                # 确定子分类：支付宝/微信用"充值"，其他用"还款"
+                subcategory = "充值" if income.account in ["支付宝", "微信"] else "还款"
 
-                    to_remove.add(exp_idx)
-                    to_remove.add(inc_idx)
-                    matched_count += 1
-                    matched_income = True
-                    break
-
-        # 如果没有匹配到信用卡收入，但有明确目标或描述含还款关键词，仍标记为转账
-        if not matched_income and exp_idx not in to_remove:
-            # 确定转账目标
-            transfer_target = target  # 可能是 "中信信用卡" 等
-            if not transfer_target:
-                desc = expense.description or ""
-                if "还款" in desc or "信用卡" in desc:
-                    transfer_target = "信用卡"
-
-            if transfer_target:
-                print(f"  转账标记: [{expense.date}] {expense.account} → {transfer_target} "
-                      f"¥{expense.amount}")
-
+                # 创建转账记录
                 transfer = Transaction(
                     date=expense.date,
                     category="转账",
-                    subcategory="还款",
+                    subcategory=subcategory,
                     account=expense.account,
                     amount=expense.amount,
                     description=expense.description,
                     transaction_type="转账",
-                    transfer_to_account=transfer_target,
+                    transfer_to_account=income.account,
                 )
                 transfers.append(transfer)
 
                 to_remove.add(exp_idx)
+                to_remove.add(inc_idx)
                 matched_count += 1
+                matched_income = True
+                break
+
+        # 如果没有匹配到信用卡收入，但有明确目标，仍标记为转账
+        if not matched_income and exp_idx not in to_remove:
+            print(f"  转账标记: [{expense.date}] {expense.account} -> {target} "
+                  f"{expense.amount}")
+
+            subcategory = "充值" if target in ["支付宝", "微信"] else "还款"
+
+            transfer = Transaction(
+                date=expense.date,
+                category="转账",
+                subcategory=subcategory,
+                account=expense.account,
+                amount=expense.amount,
+                description=expense.description,
+                transaction_type="转账",
+                transfer_to_account=target,
+            )
+            transfers.append(transfer)
+
+            to_remove.add(exp_idx)
+            matched_count += 1
+
+    # 第二轮：处理需要通过金额匹配确定目标的转账（如"跨行还款"）
+    for exp_idx, expense in debit_expenses_need_match:
+        if exp_idx in to_remove:
+            continue
+
+        matched = False
+
+        # 遍历所有信用卡收入，按金额+日期匹配
+        for inc_idx, income in credit_incomes:
+            if inc_idx in to_remove:
+                continue
+
+            # 检查金额和日期
+            if amounts_match(expense.amount, income.amount) and \
+               dates_within_range(expense.date, income.date):
+                print(f"  跨行还款匹配: [{expense.date}] {expense.account} -> {income.account} "
+                      f"{expense.amount} (通过金额匹配)")
+
+                subcategory = "充值" if income.account in ["支付宝", "微信"] else "还款"
+
+                transfer = Transaction(
+                    date=expense.date,
+                    category="转账",
+                    subcategory=subcategory,
+                    account=expense.account,
+                    amount=expense.amount,
+                    description=expense.description,
+                    transaction_type="转账",
+                    transfer_to_account=income.account,
+                )
+                transfers.append(transfer)
+
+                to_remove.add(exp_idx)
+                to_remove.add(inc_idx)
+                matched_count += 1
+                matched = True
+                break
+
+        # 如果无法匹配但确实含有还款关键词，仍标记为转账到"信用卡"
+        if not matched:
+            print(f"  跨行还款(未匹配): [{expense.date}] {expense.account} -> 信用卡 "
+                  f"{expense.amount} (无法确定具体卡)")
+
+            transfer = Transaction(
+                date=expense.date,
+                category="转账",
+                subcategory="还款",
+                account=expense.account,
+                amount=expense.amount,
+                description=expense.description,
+                transaction_type="转账",
+                transfer_to_account="信用卡",
+            )
+            transfers.append(transfer)
+
+            to_remove.add(exp_idx)
+            matched_count += 1
 
     # 过滤并添加转账记录
-    result = [t for i, t in enumerate(transactions) if i not in to_remove]
+    # 同时删除未匹配的 __REPAYMENT__ 标记记录（它们只是用于匹配的临时记录）
+    result = [t for i, t in enumerate(transactions)
+              if i not in to_remove and t.category != "__REPAYMENT__"]
     result.extend(transfers)
 
     print(f"转账识别完成：{matched_count} 条识别，删除 {len(to_remove)} 条原记录")
+    return result
+
+
+def process_family_card(transactions: List[Transaction]) -> List[Transaction]:
+    """
+    处理亲属卡/亲友代付交易
+    将微信"亲属卡交易"和支付宝"亲友代付"对应的银行卡支出重分类为"其他杂项-XX支出"
+    """
+    print("\n=== 开始亲属卡处理 ===")
+
+    # 找出所有标记交易（来自微信/支付宝的亲属卡标记）
+    markers = []  # (index, transaction, user_name, target_bank)
+    for i, t in enumerate(transactions):
+        if t.category == "__FAMILY_CARD__" or t.transaction_type == "__MARKER__":
+            user_name = t.subcategory or "亲属"  # 使用者名称存在subcategory中
+            target_bank = t.account  # 目标银行（可能是具体银行名或"__ANY_BANK__"）
+            markers.append((i, t, user_name, target_bank))
+
+    if not markers:
+        print("未发现亲属卡标记")
+        return transactions
+
+    # 所有银行卡账户（用于匹配）
+    all_bank_accounts = set(DEBIT_ACCOUNTS + CREDIT_ACCOUNTS)
+
+    # 统计各银行账户在数据中是否有交易
+    accounts_with_data = set()
+    for t in transactions:
+        if t.category != "__FAMILY_CARD__" and t.account in all_bank_accounts:
+            accounts_with_data.add(t.account)
+
+    print(f"  数据中存在的银行账户: {', '.join(sorted(accounts_with_data))}")
+
+    # 记录要删除的标记索引
+    marker_indices_to_remove = set()
+    matched_tx_indices = set()
+    matched_count = 0
+    unmatched_deleted_count = 0  # 未匹配但银行有数据（删除避免重复）
+    unmatched_kept_count = 0     # 未匹配且银行无数据（保留）
+
+    for marker_idx, marker, user_name, target_bank in markers:
+        found_match = False
+
+        # 在银行卡交易中查找匹配的交易
+        for i, t in enumerate(transactions):
+            if i in marker_indices_to_remove or i in matched_tx_indices:
+                continue
+            if t.category == "__FAMILY_CARD__":
+                continue
+            if t.account not in all_bank_accounts or t.account == "微信":
+                continue
+
+            # 匹配条件：日期 + 金额
+            if t.date == marker.date and amounts_match(t.amount, marker.amount):
+                # 如果指定了具体银行，还要匹配账户
+                if target_bank != "__ANY_BANK__" and t.account != target_bank:
+                    continue
+
+                print(f"  亲属卡匹配: [{t.date}] {t.account} {t.amount} -> {user_name}支出")
+
+                # 重分类为"其他杂项-XX支出"
+                t.category = "其他杂项"
+                t.subcategory = f"{user_name}支出"
+                t.transaction_type = "支出"
+                matched_tx_indices.add(i)
+                marker_indices_to_remove.add(marker_idx)
+                matched_count += 1
+                found_match = True
+                break
+
+        # 未匹配的处理
+        if not found_match:
+            # 检查目标银行是否有数据
+            bank_has_data = (target_bank in accounts_with_data) or (target_bank == "__ANY_BANK__")
+
+            if bank_has_data:
+                # 银行有数据但未匹配 → 删除标记（避免重复）
+                marker_indices_to_remove.add(marker_idx)
+                unmatched_deleted_count += 1
+            else:
+                # 银行无数据 → 保留标记作为唯一记录
+                marker.category = "其他杂项"
+                marker.subcategory = f"{user_name}支出"
+                marker.transaction_type = "支出"
+                if "微信" in (marker.description or ""):
+                    marker.account = "微信"
+                else:
+                    marker.account = "支付宝"
+                unmatched_kept_count += 1
+
+    # 过滤掉需要删除的标记
+    result = [t for i, t in enumerate(transactions) if i not in marker_indices_to_remove]
+
+    print(f"亲属卡处理完成：")
+    print(f"  匹配成功: {matched_count} 条（重分类银行卡交易）")
+    print(f"  未匹配-删除: {unmatched_deleted_count} 条（银行有数据，避免重复）")
+    print(f"  未匹配-保留: {unmatched_kept_count} 条（银行无数据）")
     return result
 
 
@@ -320,7 +668,7 @@ def merge_excel_files(input_dir: str, output_path: str = None):
     # 查找所有Excel文件
     excel_files = []
     for f in os.listdir(input_dir):
-        if f.endswith('.xlsx') and not f.startswith('~'):
+        if f.endswith('.xlsx') and not f.startswith('~') and not f.startswith('merged'):
             excel_files.append(os.path.join(input_dir, f))
 
     if not excel_files:
@@ -344,6 +692,9 @@ def merge_excel_files(input_dir: str, output_path: str = None):
 
     # 执行转账识别
     transactions = identify_transfers(transactions)
+
+    # 执行亲属卡/亲友代付处理
+    transactions = process_family_card(transactions)
 
     # 按日期排序
     transactions = sort_transactions(transactions)

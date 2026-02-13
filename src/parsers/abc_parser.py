@@ -222,12 +222,20 @@ class ABCParser(BaseParser):
 
         else:
             # === 支出类规则 ===
-            # 贷款还款
+            # 商贷还款（通过贷款账号识别）
+            if "39602057400003997" in text:
+                return "金融保险", "按揭还款"
+
+            # 其他贷款还款关键词
             if "贷款" in text or "按揭" in text or "房贷" in text:
                 return "金融保险", "按揭还款"
 
-            # 公积金代扣
+            # 公积金相关（需要区分还贷和扣缴）
             if "公积金" in text or "gjj" in text:
+                # 公积金冲还贷：住房公积金 + 代扣/还款
+                if "住房公积金" in text and ("代扣" in text or "还款" in text):
+                    return "金融保险", "按揭还款"
+                # 普通公积金扣缴
                 return "居家物业", "五险一金"
 
             # 微信相关
