@@ -65,6 +65,14 @@ python src/main.py input/农行-xxx.pdf output/
 python src/main.py input/ output/
 ```
 
+## LLM Skill 封装
+
+仓库内提供 `.claude/skills/sui-bill-converter/` 作为 LLM 工作流封装，用于引导账单转换、失败诊断和新增解析器。Skill 不复制解析逻辑，底层仍调用现有 Python 脚本，因此直接脚本调用方式保持不变。
+
+```bash
+python .claude/skills/sui-bill-converter/scripts/run_conversion.py --input input --output output
+```
+
 ## 项目结构
 
 ```
