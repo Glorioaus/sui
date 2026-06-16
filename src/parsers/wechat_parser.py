@@ -21,6 +21,8 @@ class WeChatParser(BaseParser):
     # 微信钱包支付方式（这些交易需要保留）
     WALLET_METHODS = ["零钱", "零钱通"]
 
+    REQUIRED_COLUMNS = {"交易时间", "交易类型", "交易对方", "商品", "收/支", "金额(元)"}
+
     def __init__(self, config_path: str = None):
         super().__init__(config_path)
         self.account_name = "微信"
@@ -31,8 +33,8 @@ class WeChatParser(BaseParser):
         """
         print(f"开始解析微信支付账单：{file_path}")
 
-        # 读取Excel，跳过头部信息行
-        df = pd.read_excel(file_path, skiprows=16)
+        # 微信账单导出的表头位置可能在第 1 行，也可能在说明信息之后。
+        df = self._read_excel_with_detected_header(file_path)
 
         # 解析账单周期
         statement_period = self._extract_period(file_path)
@@ -66,6 +68,33 @@ class WeChatParser(BaseParser):
             statement_period=statement_period,
             transactions=transactions
         )
+
+    def _read_excel_with_detected_header(self, file_path: str) -> pd.DataFrame:
+        """
+        自动识别微信账单表头行。
+
+        旧版导出通常有 16 行说明信息，当前导出可能第 1 行就是表头。
+        固定 skiprows 会把真实交易行误当列名，导致解析到 0 条记录。
+        """
+        preview = pd.read_excel(file_path, header=None, nrows=40)
+        header_row = None
+
+        for idx, row in preview.iterrows():
+            values = {
+                str(value).strip()
+                for value in row.tolist()
+                if not pd.isna(value) and str(value).strip()
+            }
+            if self.REQUIRED_COLUMNS.issubset(values):
+                header_row = idx
+                break
+
+        if header_row is None:
+            raise ValueError("未找到微信账单表头，请确认文件包含交易时间、交易类型、收/支、金额(元)等列")
+
+        df = pd.read_excel(file_path, skiprows=header_row)
+        df.columns = [str(column).strip() for column in df.columns]
+        return df
 
     def _extract_period(self, file_path: str) -> str:
         """从文件名提取账单周期"""
