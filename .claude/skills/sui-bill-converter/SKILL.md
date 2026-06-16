@@ -1,15 +1,28 @@
 ---
 name: sui-bill-converter
-description: Use this skill whenever the user asks to convert, merge, validate, troubleshoot, or extend SuiShouJi bill conversion for bank, WeChat, or Alipay statements in this repository. This skill wraps the existing Python engine instead of reimplementing parsing logic; use it for running the workflow, diagnosing failures, protecting private statement data, and guiding parser/config changes.
+description: Use this skill whenever the user asks to convert, merge, validate, troubleshoot, or extend SuiShouJi bill conversion for bank, WeChat, or Alipay statements in this repository. This is a standard Claude Code skill that calls the repository's deterministic Python engine and helps with workflow, diagnosis, parser extension, config validation, and privacy-safe handling of statement files.
 ---
 
 # Sui Bill Converter
 
+## Purpose
+
+Use this skill as the standard Claude Code workflow layer for this repository's SuiShouJi bill converter.
+
+The skill should help Claude Code run conversions, validate configs, diagnose failures, and extend parsers while keeping all deterministic financial logic in the Python code under `src/`.
+
 ## Core Principle
 
-Use this skill as an LLM workflow layer over the repository's Python scripts. Keep deterministic logic in `src/`: parsing, normalization, Excel generation, refund matching, transfer detection, and merge behavior should remain implemented and tested there.
+Keep deterministic financial logic in Python:
 
-Do not rewrite parser behavior inside the skill. If behavior must change, edit the relevant Python parser or config file.
+- parsing and normalization
+- account/category mapping
+- refund reconciliation
+- transfer detection
+- family-card matching
+- Excel generation
+
+Do not duplicate parser behavior inside the skill. If behavior must change, edit the relevant Python parser or config file.
 
 ## Repository Layout
 
@@ -24,7 +37,7 @@ Expect this project shape:
 
 ## Privacy Rules
 
-Treat files in `input/` and generated files in `output/` as private financial data. Do not paste raw transaction rows, card numbers, balances, or full statement text into responses unless the user explicitly asks. Prefer filenames, counts, error messages, and short redacted examples.
+Treat input statements and generated workbooks as private financial data. Do not paste raw transaction rows, card numbers, balances, or full statement text into responses unless the user explicitly asks. Prefer filenames, counts, error messages, and short redacted examples.
 
 ## Standard Workflow
 
@@ -47,8 +60,6 @@ python src/main.py input/ output/
 python src/merge.py output/
 ```
 
-Read `references/workflow.md` for detailed run and troubleshooting steps.
-
 ## Extending Parsers
 
 When adding support for a new statement format:
@@ -61,6 +72,16 @@ When adding support for a new statement format:
 6. Test one matching file, then the full convert-and-merge workflow.
 
 Read `references/parser_extension_guide.md` before editing parser code.
+
+## LLM Enhancement Policy
+
+Run deterministic conversion first. Consider LLM enhancement only when it adds value:
+
+- many transactions remain in default categories
+- transfer target remains generic `信用卡`
+- a file looks like a statement but no parser recognizes it
+
+LLM changes should be traceable, preserve original descriptions, and avoid overwriting low-confidence financial decisions silently. Do not make LLM fallback part of the default conversion path until it has been tested with representative samples.
 
 ## Failure Diagnosis
 

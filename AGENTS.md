@@ -34,7 +34,7 @@ python -m json.tool config/accounts.json > NUL
 
 ## Skill Wrapper
 
-`.claude/skills/sui-bill-converter/` 提供面向 LLM 的工作流封装，用于引导转换、诊断失败和扩展解析器。它不复制解析逻辑，底层仍调用 `src/main.py` 和 `src/merge.py`。常用入口是 `python .claude/skills/sui-bill-converter/scripts/run_conversion.py --input input --output output`；直接脚本调用方式仍然有效。
+`.claude/skills/sui-bill-converter/` 提供标准 Claude Code skill，用于在本仓库中触发账单转换、诊断失败和扩展解析器。它不复制解析逻辑，底层仍调用 `src/main.py` 和 `src/merge.py`。常用入口是 `python .claude/skills/sui-bill-converter/scripts/run_conversion.py --input input --output output`；直接脚本调用方式仍然有效。Skill 规范见 `docs/sui-bill-converter-claude-code-skill-spec.md`。
 
 ## Commit & Pull Request Guidelines
 
