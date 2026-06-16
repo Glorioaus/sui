@@ -39,16 +39,18 @@ class CCBParser(BaseParser):
                     
                     date = self.parse_date(date_str)
                     amount = self.parse_amount(amount_str)
-                    category, subcategory = self.match_category(description)
-                    
+                    # 建行储蓄卡：金额>=0 记为收入（用收入映射），<0 记为支出；金额统一取正
+                    is_income = amount >= 0
+                    category, subcategory = self.match_category(description, is_income=is_income)
+
                     transaction = Transaction(
                         date=date,
                         category=category,
                         subcategory=subcategory,
-                        account="建设银行信用卡",
-                        amount=amount,
+                        account="建行储蓄卡",
+                        amount=abs(amount),
                         description=description,
-                        transaction_type="支出" if amount < 0 else "收入"
+                        transaction_type="收入" if is_income else "支出"
                     )
                     
                     transactions.append(transaction)
@@ -58,7 +60,7 @@ class CCBParser(BaseParser):
         
         return BankStatement(
             bank_name="建设银行",
-            account_name="信用卡",
+            account_name="建行储蓄卡",
             account_number="",
             statement_period="",
             transactions=transactions
