@@ -73,6 +73,17 @@ When adding support for a new statement format:
 
 Read `references/parser_extension_guide.md` before editing parser code.
 
+## References (read on demand)
+
+- `references/banks/<bank>.md` — read the matching bank doc before handling that institution's statement (amount sign rules, special handling, known status).
+- `references/classification.md` — category/keyword system and per-bank classification differences.
+- `references/output-format.md` — the 3-Sheet (支出/收入/转账) Excel column contract.
+- `references/transfer-rules.md` — refund reconciliation, transfer detection, family-card matching in `merge.py`.
+- `references/workflow.md` — detailed run and troubleshooting steps.
+- `references/parser_extension_guide.md` — before adding or modifying a parser.
+
+Bank docs: `abc` (农行), `ccb-credit`/`ccb-debit` (建行信用/储蓄), `citic` (中信), `cmb` (招商), `spdb` (浦发), `boc` (宁波, 未实现), `wechat` (微信), `alipay` (支付宝).
+
 ## LLM Enhancement Policy
 
 Run deterministic conversion first. Consider LLM enhancement only when it adds value:
