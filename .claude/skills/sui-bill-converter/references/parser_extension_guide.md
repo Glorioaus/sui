@@ -1,11 +1,11 @@
-# Parser Extension Guide
+# 解析器扩展指南
 
-## Add A Parser
+## 新增解析器
 
-1. Choose the closest existing parser in `src/parsers/`.
-2. Create a new snake_case file ending in `_parser.py`.
-3. Define a CamelCase class, for example `NewBankParser`.
-4. Subclass `BaseParser` and implement:
+1. 先选择 `src/parsers/` 中最接近的已有解析器作为参考。
+2. 新建一个以 `_parser.py` 结尾的 snake_case 文件。
+3. 定义银行相关的 CamelCase 类名，例如 `NewBankParser`。
+4. 继承 `BaseParser` 并实现：
 
 ```python
 def parse(self, file_path: str) -> BankStatement:
@@ -15,34 +15,34 @@ def get_supported_extensions(self) -> list[str]:
     ...
 ```
 
-5. Normalize every row into `Transaction` with:
+5. 将每一行账单标准化为 `Transaction`，字段要求：
 
-- `date` as `YYYY-MM-DD`
-- `category` and `subcategory` from mappings or explicit rules
-- `account` using project account naming
-- positive `amount`
-- `transaction_type` as `支出`, `收入`, or `转账`
-- `merchant` where refund matching needs merchant identity
-- `transfer_to_account` only for transfers
+- `date` 使用 `YYYY-MM-DD`
+- `category` 和 `subcategory` 来自配置映射或显式规则
+- `account` 使用项目中的账户命名
+- `amount` 始终为正数
+- `transaction_type` 为 `支出`、`收入` 或 `转账`
+- `merchant` 在退款匹配需要商户身份时填写
+- `transfer_to_account` 仅在转账记录中填写
 
-## Register The Parser
+## 注册解析器
 
-Update `src/parsers/__init__.py` to export the class. Then update `FILE_PATTERNS` in `src/main.py`. Put specific filename patterns before broad ones such as `.*账单.*\.pdf$`.
+在 `src/parsers/__init__.py` 中导出新类，然后更新 `src/main.py` 的 `FILE_PATTERNS`。具体文件名规则要放在宽泛规则之前，例如放在 `.*账单.*\.pdf$` 之前。
 
-Example:
+示例：
 
 ```python
 (r'新银行.*\.pdf$', NewBankParser, "新银行信用卡"),
 ```
 
-## Test Expectations
+## 测试要求
 
-Test at least:
+至少测试：
 
 ```bash
-python src/main.py input/新银行-样例.pdf output/
+python src/main.py input/新银行样例.pdf output/
 python src/main.py input/ output/
 python src/merge.py output/
 ```
 
-Check generated sheets for 支出, 收入, and 转账. Do not commit real statement files or generated output.
+检查生成文件中的支出、收入、转账三个 Sheet。不要提交真实账单文件，也不要提交生成的 output 文件。

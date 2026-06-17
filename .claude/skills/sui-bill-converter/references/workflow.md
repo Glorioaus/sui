@@ -1,8 +1,8 @@
-# Workflow
+# 工作流
 
-## Environment
+## 环境
 
-Use Python 3.11. The repository pins the expected version in `.python-version`.
+使用 Python 3.11。仓库通过 `.python-version` 记录推荐版本。
 
 ```bash
 python -m venv .venv
@@ -10,11 +10,11 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-On Windows, `start.ps1` can prepare the environment interactively.
+Windows 下也可以运行 `start.ps1` 交互式准备环境。
 
-## Validate Config
+## 校验配置
 
-Run these commands before conversion when any `config/*.json` file changed:
+当修改过 `config/*.json` 时，先运行：
 
 ```bash
 python -m json.tool config/category_mapping.json > NUL
@@ -22,43 +22,43 @@ python -m json.tool config/category_mapping_income.json > NUL
 python -m json.tool config/accounts.json > NUL
 ```
 
-## Convert And Merge
+## 转换与合并
 
-Preferred skill wrapper:
+推荐使用 skill wrapper：
 
 ```bash
 python .claude/skills/sui-bill-converter/scripts/run_conversion.py --input input --output output
 ```
 
-Equivalent direct commands:
+等价的直接命令：
 
 ```bash
 python src/main.py input/ output/
 python src/merge.py output/
 ```
 
-Single file conversion:
+单文件转换：
 
 ```bash
 python src/main.py input/农行-xxx.pdf output/
 ```
 
-Merge only:
+只执行合并：
 
 ```bash
 python src/merge.py output/
 ```
 
-Expected merged result:
+预期合并结果：
 
 ```text
 output/merged_账单.xlsx
 ```
 
-## Troubleshooting Checklist
+## 排障清单
 
-- If the CLI says the file type is unknown, compare the filename with `FILE_PATTERNS` in `src/main.py`.
-- If config loading fails, validate JSON and confirm UTF-8 encoding.
-- If no transactions are found, check whether the bank changed statement layout or whether the filename routed to the wrong parser.
-- If duplicate records appear, review skipped WeChat/Alipay bank-card payments and merge refund matching.
-- If transfers are missing, inspect the generated 转账 sheet and transfer detection logic in `src/merge.py`.
+- 如果提示文件类型未知，检查文件名是否匹配 `src/main.py` 中的 `FILE_PATTERNS`。
+- 如果配置加载失败，校验 JSON 并确认 UTF-8 编码。
+- 如果解析结果为 0 条，检查银行是否变更账单版式，或文件名是否路由到错误解析器。
+- 如果出现重复记录，检查微信/支付宝银行卡支付跳过规则，以及合并阶段的退款匹配。
+- 如果转账缺失，检查生成的转账 Sheet 和 `src/merge.py` 中的转账识别逻辑。
