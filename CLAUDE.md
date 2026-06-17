@@ -58,8 +58,9 @@ python src/merge.py output/
 | `*账单*.pdf` | SPDBParser | 浦发信用卡（账单格式）|
 | `中信*.pdf` | CITICParser | 中信银行 |
 | `建行信用卡*.pdf` | CCBCreditParser | 建行信用卡 |
-| `建行*.csv` | CCBParser | 建设银行储蓄卡 |
-| `宁波*.xlsx` | BOCParser | 宁波银行 |
+| `建行*.pdf`（非信用卡）| CCBDebitParser | 建设银行储蓄卡（PDF，主用）|
+| `建行*.csv` | CCBParser | 建设银行储蓄卡（CSV，遗留）|
+| `宁波*.pdf` | BOCParser | 宁波银行 |
 | `微信*.xlsx` | WeChatParser | 微信支付 |
 | `支付宝*.csv` | AlipayParser | 支付宝 |
 
@@ -78,12 +79,13 @@ python src/merge.py output/
 2. **解析器架构**:
    - 抽象基类: `src/base_parser.py`（提供通用工具，如日期解析、金额解析、分类匹配）
    - 银行专用解析器位于 `src/parsers/`:
-     - `CCBParser`: 建设银行储蓄卡 (CSV格式)
+     - `CCBDebitParser`: 建设银行储蓄卡 (PDF格式) ✅ 已实现（主用）
+     - `CCBParser`: 建设银行储蓄卡 (CSV格式，遗留)
      - `CCBCreditParser`: 建行信用卡 (PDF格式) ✅ 已实现
      - `ABCParser`: 农业银行 (PDF格式) ✅ 已实现
      - `SPDBParser`: 浦发信用卡 (PDF格式) ✅ 已实现
      - `CMBParser`: 招商信用卡 (PDF格式) ✅ 已实现
-     - `BOCParser`: 宁波银行 (Excel格式)
+     - `BOCParser`: 宁波银行 (PDF格式) ✅ 已实现
      - `CITICParser`: 中信银行 (PDF格式) ✅ 已实现
      - `WeChatParser`: 微信支付 (Excel格式) ✅ 已实现
      - `AlipayParser`: 支付宝 (CSV格式) ✅ 已实现

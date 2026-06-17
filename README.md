@@ -19,8 +19,9 @@
 | 浦发信用卡 | PDF | SPDBParser | `浦发*.pdf` 或 `*账单*.pdf` |
 | 招商信用卡 | PDF | CMBParser | `招商*.pdf` |
 | 建行信用卡 | PDF | CCBCreditParser | `建行信用卡*.pdf` |
-| 建设银行储蓄卡 | CSV | CCBParser | `建行*.csv` |
-| 宁波银行 | Excel | BOCParser | `宁波*.xlsx` |
+| 建设银行储蓄卡 | PDF | CCBDebitParser | `建行*.pdf`（储蓄卡；`建行信用卡*.pdf` 走信用卡解析器）|
+| 建设银行储蓄卡（CSV） | CSV | CCBParser | `建行*.csv`（遗留，列假设与现行导出不符，建议用 PDF）|
+| 宁波银行 | PDF | BOCParser | `宁波*.pdf` |
 | 微信支付 | Excel | WeChatParser | `微信*.xlsx` |
 | 支付宝 | CSV | AlipayParser | `支付宝*.csv` |
 
@@ -95,8 +96,9 @@ sui/
 │   │   ├── spdb_parser.py     # 浦发信用卡 (PDF)
 │   │   ├── cmb_parser.py      # 招商信用卡 (PDF)
 │   │   ├── ccb_credit_parser.py # 建行信用卡 (PDF)
-│   │   ├── ccb_parser.py      # 建设银行储蓄卡 (CSV)
-│   │   ├── boc_parser.py      # 宁波银行 (Excel)
+│   │   ├── ccb_debit_parser.py  # 建设银行储蓄卡 (PDF)
+│   │   ├── ccb_parser.py      # 建设银行储蓄卡 (CSV，遗留)
+│   │   ├── boc_parser.py      # 宁波银行 (PDF)
 │   │   ├── wechat_parser.py   # 微信支付 (Excel)
 │   │   └── alipay_parser.py   # 支付宝 (CSV)
 │   ├── excel_generator.py     # Excel生成器
