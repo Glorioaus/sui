@@ -2,7 +2,7 @@
 """Run the Sui bill conversion workflow without duplicating parser logic.
 
 直接 import 仓库 src/ 的 SuiConverter / merge_excel_files（通过 sys.path 注入），
-不复制解析逻辑，也避开 subprocess 与 src/main.py 的虚拟环境交互提示。
+不复制解析逻辑，也不通过外部命令转调 src/main.py。
 """
 
 from __future__ import annotations
@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
 import sys
 from pathlib import Path
 
@@ -89,12 +88,6 @@ def run_merge(merge_excel_files, output_dir: str, merged_name: str) -> int:
     return 0 if os.path.exists(merged_path) else 1
 
 
-def install_dependencies(repo_root: Path) -> int:
-    command = [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"]
-    print("+ " + " ".join(command))
-    return subprocess.run(command, cwd=repo_root).returncode
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run Sui bill conversion and optional merge (direct import).")
     parser.add_argument("--input", default="input", help="Input statement file or directory. Default: input")
@@ -103,7 +96,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repo-root", default=None, help="Repository root. Auto-detected by default.")
     parser.add_argument("--skip-merge", action="store_true", help="Only run parsing, skip merge.")
     parser.add_argument("--skip-config-check", action="store_true", help="Skip JSON config validation.")
-    parser.add_argument("--install-deps", action="store_true", help="Install dependencies before conversion.")
     parser.add_argument(
         "--allow-global-python",
         action="store_true",
@@ -120,11 +112,6 @@ def main() -> int:
         print("Refusing to run outside a virtual environment.")
         print("Activate .venv first, or pass --allow-global-python.")
         return 2
-
-    if args.install_deps:
-        result = install_dependencies(repo_root)
-        if result != 0:
-            return result
 
     if not args.skip_config_check:
         validate_config(repo_root)

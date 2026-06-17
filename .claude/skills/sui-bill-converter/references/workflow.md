@@ -4,13 +4,9 @@
 
 使用 Python 3.11。仓库通过 `.python-version` 记录推荐版本。
 
-```bash
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+平台运行时应由镜像或任务环境预置依赖。上传到平台的 skill 不负责安装依赖，也不在运行时执行包管理命令。
 
-Windows 下也可以运行 `start.ps1` 交互式准备环境。
+本地开发时可按仓库 README 或 `start.ps1` 准备虚拟环境。
 
 ## 校验配置
 
