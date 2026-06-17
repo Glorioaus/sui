@@ -355,18 +355,37 @@ def reconcile_refunds(transactions: List[Transaction]) -> List[Transaction]:
     return result
 
 
+# 钱包（微信/支付宝）类转账语义标记：储蓄卡→钱包只有在这些语义下才算充值/转入，
+# 否则"财付通-微信支付-XX商户"/"支付宝-XX商户消费"这类经钱包的商户消费会被误判为转账
+WALLET_TRANSFER_MARKERS = ("充值", "转入", "零钱", "余额宝", "还款", "提现")
+
+
 def identify_transfer_target(description: str) -> Optional[str]:
     """
-    从描述中识别转账目标账户
+    从描述中识别转账目标账户。
+
+    信用卡/信贷类关键词（中信/招商/浦发/建行信用/花呗/京东白条/还款等）语义明确，直接命中。
+    钱包类（微信/支付宝/零钱/余额宝）须同时出现转账语义标记（充值/转入/零钱/余额宝/还款/提现），
+    以避免把"经微信/支付宝的商户消费"误识别为转账。
     """
     if not description:
         return None
 
     desc_lower = description.lower()
 
+    # 信用卡/信贷类关键词（跳过钱包类，单独处理）
     for keyword, target in TRANSFER_KEYWORDS.items():
+        if keyword in ("微信", "零钱", "支付宝", "余额宝"):
+            continue
         if keyword.lower() in desc_lower:
             return target
+
+    # 钱包类：须同时含转账语义标记才算充值/转入钱包
+    has_wallet = any(k in desc_lower for k in ("微信", "零钱", "支付宝", "余额宝"))
+    if has_wallet and any(m in desc_lower for m in WALLET_TRANSFER_MARKERS):
+        if "支付宝" in desc_lower or "余额宝" in desc_lower:
+            return "支付宝"
+        return "微信"
 
     return None
 
