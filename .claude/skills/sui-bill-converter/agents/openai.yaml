@@ -1,0 +1,4 @@
+interface:
+  display_name: "随手记账单转换"
+  short_description: "转换、合并并校验银行、微信、支付宝账单。"
+  default_prompt: "使用 $sui-bill-converter 转换并合并我的随手记账单，然后校验输出工作簿。"
