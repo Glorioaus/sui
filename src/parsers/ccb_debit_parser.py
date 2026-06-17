@@ -160,11 +160,23 @@ class CCBDebitParser(BaseParser):
                 return "职业收入", "利息收入"
             return None, None  # 其余收入走 match_category（基金/余额宝命中理财，ATM/银联落默认）
 
-        # 支出：转出类（跨行转出/转出/转账/汇出）+ 礼金人情关键词 → 送礼请客
-        # 仅限转账类摘要，避免把"生日蛋糕"等普通消费误判为人情
+        # 支出：高置信度商户关键词（仅"消费"类摘要）
+        if summary == "消费":
+            merchant_text = f"{location} {counterparty}".lower()
+            if any(k in merchant_text for k in (
+                "美团", "饿了么", "拉扎斯", "肯德基", "麦当劳", "kfc",
+                "瑞幸", "咖啡", "coffee", "叮咚", "盒马", "买菜", "外卖", "食堂",
+            )):
+                return "食品酒水", "早午晚餐"
+            if any(k in merchant_text for k in ("淘宝", "天猫", "京东", "拼多多", "小红书")):
+                return "居家物业", "日常用品"
+            if any(k in merchant_text for k in ("滴滴", "高德", "打车", "出行", "地铁", "公交")):
+                return "行车交通", "打车租车"
+
+        # 转出类 + 礼金人情关键词 → 送礼请客（仅限转账类摘要，避免"生日蛋糕"误判）
         if summary in ("跨行转出", "转出", "转账", "汇出") and any(k in text for k in self.GIFT_KEYWORDS):
             return "人情往来", "送礼请客"
-        return None, None  # 普通消费走 match_category 商户关键词
+        return None, None  # 其余走 match_category
 
     def get_supported_extensions(self) -> List[str]:
         return [".pdf"]

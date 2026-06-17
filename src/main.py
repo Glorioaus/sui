@@ -45,7 +45,7 @@ FILE_PATTERNS = [
     (r'建行(?!信用卡).*\.pdf$', CCBDebitParser, "建设银行储蓄卡(PDF)"),
     (r'.*账单.*\.pdf$', SPDBParser, "浦发信用卡(账单)"),  # 通用账单格式放最后
     (r'建行.*\.csv$', CCBParser, "建设银行储蓄卡"),
-    (r'宁波.*\.xlsx?$', BOCParser, "宁波银行"),
+    (r'宁波.*\.pdf$', BOCParser, "宁波银行"),
     (r'微信.*\.xlsx?$', WeChatParser, "微信支付"),
     (r'支付宝.*\.csv$', AlipayParser, "支付宝"),
 ]
@@ -80,8 +80,9 @@ class SuiConverter:
         print("  - 招商*.pdf       → 招商信用卡")
         print("  - 中信*.pdf       → 中信银行")
         print("  - 建行信用卡*.pdf → 建行信用卡")
-        print("  - 建行*.csv       → 建设银行储蓄卡")
-        print("  - 宁波*.xlsx      → 宁波银行")
+        print("  - 建行*.pdf       → 建设银行储蓄卡(PDF)")
+        print("  - 建行*.csv       → 建设银行储蓄卡(CSV，遗留)")
+        print("  - 宁波*.pdf       → 宁波银行")
         print("  - 微信*.xlsx      → 微信支付")
         print("  - 支付宝*.csv     → 支付宝")
         return None
@@ -184,8 +185,9 @@ def main():
         print("  招商*.pdf       → 招商信用卡")
         print("  中信*.pdf       → 中信银行")
         print("  建行信用卡*.pdf → 建行信用卡")
-        print("  建行*.csv       → 建设银行储蓄卡")
-        print("  宁波*.xlsx      → 宁波银行")
+        print("  建行*.pdf       → 建设银行储蓄卡(PDF)")
+        print("  建行*.csv       → 建设银行储蓄卡(CSV，遗留)")
+        print("  宁波*.pdf       → 宁波银行")
         print("  微信*.xlsx      → 微信支付")
         print("  支付宝*.csv     → 支付宝")
         return
