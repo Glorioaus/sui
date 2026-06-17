@@ -6,7 +6,7 @@ import os
 import sys
 import re
 from typing import Optional
-from parsers import CCBParser, CCBCreditParser, ABCParser, BOCParser, CITICParser, CMBParser, WeChatParser, AlipayParser
+from parsers import CCBParser, CCBCreditParser, CCBDebitParser, ABCParser, BOCParser, CITICParser, CMBParser, WeChatParser, AlipayParser
 from parsers.spdb_parser import SPDBParser
 from excel_generator import ExcelGenerator
 from models import BankStatement
@@ -42,6 +42,7 @@ FILE_PATTERNS = [
     (r'招商.*\.pdf$', CMBParser, "招商信用卡"),
     (r'中信.*\.pdf$', CITICParser, "中信银行"),
     (r'建行信用卡.*\.pdf$', CCBCreditParser, "建行信用卡"),
+    (r'建行(?!信用卡).*\.pdf$', CCBDebitParser, "建设银行储蓄卡(PDF)"),
     (r'.*账单.*\.pdf$', SPDBParser, "浦发信用卡(账单)"),  # 通用账单格式放最后
     (r'建行.*\.csv$', CCBParser, "建设银行储蓄卡"),
     (r'宁波.*\.xlsx?$', BOCParser, "宁波银行"),
