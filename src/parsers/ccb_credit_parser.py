@@ -249,7 +249,7 @@ class CCBCreditParser(BaseParser):
 
             # 购物
             if any(k in desc_lower for k in ['淘宝', '天猫', '京东', '拼多多', '小红书']):
-                return "购物消费", "网购"
+                return "居家物业", "日常用品"
 
             # 医疗
             if any(k in desc_lower for k in ['药房', '药店', '医院', '诊所']):

@@ -82,7 +82,7 @@ Read `references/parser_extension_guide.md` before editing parser code.
 - `references/workflow.md` — detailed run and troubleshooting steps.
 - `references/parser_extension_guide.md` — before adding or modifying a parser.
 
-Bank docs: `abc` (农行), `ccb-credit`/`ccb-debit` (建行信用/储蓄), `citic` (中信), `cmb` (招商), `spdb` (浦发), `boc` (宁波, 未实现), `wechat` (微信), `alipay` (支付宝).
+Bank docs: `abc` (农行), `ccb-credit`/`ccb-debit` (建行信用/储蓄), `citic` (中信), `cmb` (招商), `spdb` (浦发), `boc` (宁波储蓄卡 PDF), `wechat` (微信), `alipay` (支付宝).
 
 ## LLM Enhancement Policy
 

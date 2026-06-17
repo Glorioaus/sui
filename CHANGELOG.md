@@ -18,6 +18,8 @@
 - `merge.py` 收紧微信/支付宝转账识别：钱包类目标须同时含转账语义标记（充值/转入/零钱/余额宝/还款/提现），避免「经钱包的商户消费」被误判为转账
 - `TRANSFER_KEYWORDS` 补「建设银行信用」→ 建行信用卡（修「还建设银行信用卡」误落通用「信用卡」）
 - `CCBParser`：账户名 `建设银行信用卡` → `建行储蓄卡`、支出金额取 `abs()`、收入走收入分类映射
+- 硬编码分类对齐 `config/category_mapping.json`：支付宝网购/水电燃气、建行信用卡购物/汽车类分类不再落到不存在的分类或子分类
+- 宁波银行「银转证」识别为转账到 `股票账户`，避免计入普通支出
 
 ### Changed
 - skill 收敛为标准 `.claude/skills/sui-bill-converter`（放弃远程/`.agents` 方案），新增 `docs/sui-bill-converter-claude-code-skill-spec.md`
