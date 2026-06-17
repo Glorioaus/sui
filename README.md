@@ -18,8 +18,8 @@
 | 中信信用卡 | PDF | CITICParser | `*中信*账单*.pdf` |
 | 浦发信用卡 | PDF | SPDBParser | `浦发*.pdf` 或 `*账单*.pdf` |
 | 招商信用卡 | PDF | CMBParser | `招商*.pdf` |
-| 建行信用卡 | PDF | CCBCreditParser | `建行信用卡*.pdf` |
-| 建设银行储蓄卡 | PDF | CCBDebitParser | `建行*.pdf`（储蓄卡；`建行信用卡*.pdf` 走信用卡解析器）|
+| 建行信用卡 | PDF | CCBCreditParser | `建行/建设银行 信用卡*.pdf` |
+| 建设银行储蓄卡 | PDF | CCBDebitParser | `建行*.pdf` / `建设银行*.pdf`（储蓄卡；`*信用卡*.pdf` 走信用卡解析器）|
 | 建设银行储蓄卡（CSV） | CSV | CCBParser | `建行*.csv`（遗留，列假设与现行导出不符，建议用 PDF）|
 | 宁波银行 | PDF | BOCParser | `宁波*.pdf` |
 | 微信支付 | Excel | WeChatParser | `微信*.xlsx` |

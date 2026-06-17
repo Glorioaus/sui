@@ -57,8 +57,8 @@ python src/merge.py output/
 | `招商*.pdf` | CMBParser | 招商信用卡 |
 | `*账单*.pdf` | SPDBParser | 浦发信用卡（账单格式）|
 | `中信*.pdf` | CITICParser | 中信银行 |
-| `建行信用卡*.pdf` | CCBCreditParser | 建行信用卡 |
-| `建行*.pdf`（非信用卡）| CCBDebitParser | 建设银行储蓄卡（PDF，主用）|
+| `建行/建设银行 信用卡*.pdf` | CCBCreditParser | 建行信用卡 |
+| `建行*.pdf` / `建设银行*.pdf`（非信用卡）| CCBDebitParser | 建设银行储蓄卡（PDF，主用）|
 | `建行*.csv` | CCBParser | 建设银行储蓄卡（CSV，遗留）|
 | `宁波*.pdf` | BOCParser | 宁波银行 |
 | `微信*.xlsx` | WeChatParser | 微信支付 |

@@ -117,7 +117,7 @@ sui-bill-converter
 - `CCBParser` 账户名应与 `config/accounts.json` 和 `merge.py` 对齐。
 - `CCBParser` 支出金额应取正数。
 - `CCBParser` 收入记录应使用收入分类映射。
-- `BOCParser` 在未实现前应显式报错，不能静默返回 0 条。
+- `BOCParser` 已实现宁波银行储蓄卡 PDF 解析；其余未实现路径应显式报错，不能静默返回 0 条。
 
 ### Phase 3: Absorb Useful Feat Branch Content
 
@@ -170,7 +170,7 @@ LLM 增强不是默认主流程。
 - `SKILL.md` 描述准确，只面向 Claude Code 本地 skill。
 - 用户请求“转换账单”“合并账单”“随手记导入”等任务时，skill 能指导或调用正确脚本。
 - 生成的 Excel 包含 `支出`、`收入`、`转账` 三个 Sheet。
-- 未实现的宁波银行解析器显式报错。
+- 宁波银行 PDF 解析器已实现；其余未实现解析器应显式报错。
 - 文档中只有一套主 skill 目录规范：`.claude/skills/sui-bill-converter/`。
 
 ## 11. Risks

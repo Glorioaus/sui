@@ -72,7 +72,7 @@ class BOCParser(BaseParser):
     def _parse_header(self, file_path: str) -> Tuple[str, str]:
         """
         从首页文本提取卡号与账单周期
-        格式：户 名: 马燥 卡 号: 621418... / 2026-03-18 — 2026-06-16
+        格式：户 名: 某用户 卡 号: 6214xxxxxxxx / 2026-03-18 — 2026-06-16
         """
         account_number = ""
         statement_period = ""
