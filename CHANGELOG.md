@@ -4,9 +4,9 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
-## [Unreleased]
+## [2.0.0] - 2026-06-17
 
-本轮进行中的工作（计划作为下一个大版本）。自 v1.0.1 以来的变更：
+自 v1.0.1 以来的变更：
 
 ### Added
 - 建设银行储蓄卡 PDF 解析器 (`CCBDebitParser`)：`extract_tables()` 提取 7 列表格，账户固定 `建行储蓄卡`
