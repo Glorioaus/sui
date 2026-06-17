@@ -322,11 +322,11 @@ class AlipayParser(BaseParser):
             if "外卖" in text or "饿了么" in text or "美团" in text:
                 return "食品酒水", "早午晚餐"
             if "淘宝" in text or "天猫" in text:
-                return "购物消费", "网购"
+                return "居家物业", "日常用品"
             if "话费" in text or "充值" in text:
                 return "交流通讯", "手机费"
             if "电费" in text or "水费" in text or "燃气" in text:
-                return "居家物业", "水电煤"
+                return "居家物业", "水电煤气"
             if "还款" in text or "信用卡" in text:
                 return "转账", "还款"
             if "投资" in text or "基金" in text:

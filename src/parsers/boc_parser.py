@@ -135,6 +135,19 @@ class BOCParser(BaseParser):
         rest_tokens = self._clean_rest((m.group(4) or "").strip())
         description = self._build_description(summary, rest_tokens)
 
+        # 银转证（银行转证券）→ 转账到股票账户（投资转入，非消费）
+        if summary == "银转证":
+            return Transaction(
+                date=date_str,
+                category="转账",
+                subcategory="",
+                account=self.account_name,
+                amount=abs(amount),
+                description=description,
+                transaction_type="转账",
+                transfer_to_account="股票账户",
+            )
+
         is_income = amount >= 0
         category, subcategory = self._apply_rules(summary, rest_tokens, is_income)
         if category is None:

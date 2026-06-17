@@ -255,9 +255,11 @@ class CCBCreditParser(BaseParser):
             if any(k in desc_lower for k in ['药房', '药店', '医院', '诊所']):
                 return "医疗保健", "药品费"
 
-            # 汽车
-            if any(k in desc_lower for k in ['汽车', '车用', '加油']):
-                return "行车交通", "汽车用品"
+            # 汽车：加油→油费，其余（汽车/车用）→私家车费用
+            if '加油' in desc_lower:
+                return "行车交通", "油费"
+            if any(k in desc_lower for k in ['汽车', '车用']):
+                return "行车交通", "私家车费用"
 
         # 使用通用分类
         return self.match_category(description, is_income)
