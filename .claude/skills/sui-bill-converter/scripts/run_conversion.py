@@ -1,8 +1,11 @@
-#!/usr/bin/env python3
-"""Run the Sui bill conversion workflow without duplicating parser logic.
+﻿#!/usr/bin/env python3
+"""随手记账单转换工作流入口（自适应单入口）。
 
-直接 import 仓库 src/ 的 SuiConverter / merge_excel_files（通过 sys.path 注入），
-不复制解析逻辑，也不通过外部命令转调 src/main.py。
+寻根顺序：
+1. 优先用 skill 包内 engine/（自包含模式，可脱离宿主仓库独立运行）。
+2. 包内缺失时回退宿主仓库 src/（宿主仓库内开发模式）。
+
+两条路径产出同一份 merged_账单.xlsx。
 """
 
 from __future__ import annotations
@@ -14,6 +17,7 @@ import sys
 from pathlib import Path
 
 
+SKILL_DIR = Path(__file__).resolve().parent.parent
 CONFIG_FILES = (
     "category_mapping.json",
     "category_mapping_income.json",
@@ -25,42 +29,59 @@ def in_virtual_environment() -> bool:
     return bool(getattr(sys, "real_prefix", None)) or sys.prefix != getattr(sys, "base_prefix", sys.prefix)
 
 
-def find_repo_root(explicit: str | None = None) -> Path:
+def find_repo_root(explicit: str | None = None) -> Path | None:
+    """查找宿主仓库根目录（含 src/main.py、src/merge.py）。找不到返回 None。"""
     if explicit:
         root = Path(explicit).resolve()
         if is_repo_root(root):
             return root
         raise SystemExit(f"Not a Sui converter repository root: {root}")
-    candidates = [Path.cwd().resolve(), *Path(__file__).resolve().parents]
+    candidates = [Path.cwd().resolve(), *SKILL_DIR.parents]
     for candidate in candidates:
         if is_repo_root(candidate):
             return candidate
-    raise SystemExit("Could not locate repository root containing src/main.py, src/merge.py, and requirements.txt")
+    return None
 
 
 def is_repo_root(path: Path) -> bool:
-    return (
-        (path / "src" / "main.py").is_file()
-        and (path / "src" / "merge.py").is_file()
-        and (path / "requirements.txt").is_file()
-    )
+    return (path / "src" / "main.py").is_file() and (path / "src" / "merge.py").is_file()
 
 
-def validate_config(repo_root: Path) -> None:
+def resolve_engine(explicit_repo_root: str | None = None) -> tuple[Path, Path, Path, str]:
+    """返回 (engine_dir, config_dir, templates_dir, source_label)。
+
+    优先包内 engine/，回退宿主 src/。
+    """
+    bundled_engine = SKILL_DIR / "engine" / "main.py"
+    bundled_config = SKILL_DIR / "config"
+    bundled_templates = SKILL_DIR / "templates"
+    if bundled_engine.is_file():
+        return SKILL_DIR / "engine", bundled_config, bundled_templates, "包内 engine/（自包含）"
+
+    repo_root = find_repo_root(explicit_repo_root)
+    if repo_root is None:
+        raise SystemExit(
+            "找不到转换引擎：skill 包内没有 engine/main.py，也无法定位宿主仓库（含 src/main.py）。\n"
+            "若在宿主仓库内运行，请确认工作目录；若在独立环境运行，请先运行 sync_engine.py 建立包内引擎。"
+        )
+    return repo_root / "src", repo_root / "config", repo_root / "templates", f"宿主 {repo_root}/src/"
+
+
+def validate_config(config_dir: Path) -> None:
     for filename in CONFIG_FILES:
-        path = repo_root / "config" / filename
+        path = config_dir / filename
         with path.open("r", encoding="utf-8") as handle:
             json.load(handle)
-        print(f"OK config/{filename}")
+        print(f"OK {path}")
 
 
-def load_engine(repo_root: Path):
-    """把仓库 src/ 注入 sys.path 并返回 (SuiConverter, merge_excel_files)。"""
-    src_dir = str(repo_root / "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-    from main import SuiConverter  # 动态导入，避免复制解析逻辑
-    from merge import merge_excel_files
+def load_engine(engine_dir: Path):
+    """把引擎目录注入 sys.path 并返回 (SuiConverter, merge_excel_files)。"""
+    engine_path = str(engine_dir)
+    if engine_path not in sys.path:
+        sys.path.insert(0, engine_path)
+    from main import SuiConverter  # type: ignore
+    from merge import merge_excel_files  # type: ignore
     return SuiConverter, merge_excel_files
 
 
@@ -89,13 +110,14 @@ def run_merge(merge_excel_files, output_dir: str, merged_name: str) -> int:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run Sui bill conversion and optional merge (direct import).")
+    parser = argparse.ArgumentParser(description="Run Sui bill conversion (adaptive: bundled engine first, repo fallback).")
     parser.add_argument("--input", default="input", help="Input statement file or directory. Default: input")
     parser.add_argument("--output", default="output", help="Output directory. Default: output")
     parser.add_argument("--merged-name", default="merged_账单.xlsx", help="Merged workbook filename. Default: merged_账单.xlsx")
-    parser.add_argument("--repo-root", default=None, help="Repository root. Auto-detected by default.")
+    parser.add_argument("--repo-root", default=None, help="Repository root (fallback only). Auto-detected by default.")
     parser.add_argument("--skip-merge", action="store_true", help="Only run parsing, skip merge.")
     parser.add_argument("--skip-config-check", action="store_true", help="Skip JSON config validation.")
+    parser.add_argument("--prefer-repo", action="store_true", help="强制用宿主仓库引擎，忽略包内 engine/。")
     parser.add_argument(
         "--allow-global-python",
         action="store_true",
@@ -106,17 +128,28 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    repo_root = find_repo_root(args.repo_root)
 
     if not in_virtual_environment() and not args.allow_global_python:
         print("Refusing to run outside a virtual environment.")
         print("Activate .venv first, or pass --allow-global-python.")
         return 2
 
-    if not args.skip_config_check:
-        validate_config(repo_root)
+    if args.prefer_repo:
+        repo_root = find_repo_root(args.repo_root)
+        if repo_root is None:
+            raise SystemExit("--prefer-repo 指定，但找不到宿主仓库。")
+        engine_dir = repo_root / "src"
+        config_dir = repo_root / "config"
+        source_label = f"宿主 {repo_root}/src/（强制）"
+    else:
+        engine_dir, config_dir, _templates_dir, source_label = resolve_engine(args.repo_root)
 
-    SuiConverter, merge_excel_files = load_engine(repo_root)
+    print(f"引擎来源：{source_label}")
+
+    if not args.skip_config_check:
+        validate_config(config_dir)
+
+    SuiConverter, merge_excel_files = load_engine(engine_dir)
 
     input_path = str(Path(args.input).resolve())
     output_dir = str(Path(args.output).resolve())
