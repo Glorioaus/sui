@@ -68,9 +68,9 @@ python src/main.py input/ output/
 
 ## LLM Skill 封装
 
-仓库内提供 `.claude/skills/sui-bill-converter/` 作为**自包含**的标准 Claude Code skill。包内 `engine/`、`config/`、`templates/` 是宿主同名目录的快照副本，可脱离宿主仓库独立运行（例如部署到内部 agent 平台）。`run_conversion.py` 优先用包内引擎，回退宿主 `src/`；直接脚本调用方式保持不变。
+仓库内提供 `.claude/skills/sui-bill-converter/` 作为**自包含**的标准 Claude Code skill。包内 `engine/`、`config/` 是宿主同名目录的快照副本，可脱离宿主仓库独立运行（例如部署到内部 agent 平台）。`run_conversion.py` 优先用包内引擎，回退宿主 `src/`；直接脚本调用方式保持不变。
 
-修改 `src/`、`config/`、`templates/` 后必须同步到包内副本，否则独立平台会用过期引擎：
+修改 `src/`、`config/` 后必须同步到包内副本，否则独立平台会用过期引擎：
 
 ```bash
 python .claude/skills/sui-bill-converter/scripts/sync_engine.py
@@ -112,8 +112,6 @@ sui/
 │   ├── excel_generator.py     # Excel生成器
 │   ├── merge.py               # 合并处理器
 │   └── main.py                # 主程序入口
-├── templates/
-│   └── template.xls           # 随手记导入模板（参考）
 ├── input/                     # 输入账单目录
 └── output/                    # 输出Excel目录
 ```

@@ -1,8 +1,10 @@
 ﻿#!/usr/bin/env python3
 """同步宿主仓库的引擎/配置/模板到 skill 包内，保持自包含副本与权威源一致。
 
-权威源：宿主仓库的 src/、config/、templates/。
-副本目标：skill 包内的 engine/、config/、templates/。
+权威源：宿主仓库的 src/、config/。
+副本目标：skill 包内的 engine/、config/。
+
+注：templates/template.xls 不被代码使用，不打进 skill 包（平台禁止 .xls）。
 
 用法：
     python .claude/skills/sui-bill-converter/scripts/sync_engine.py         # 同步
@@ -33,7 +35,6 @@ def _build_sync_map() -> list[tuple[str, str]]:
         mapping.append((str(Path("src") / rel), str(Path("engine") / rel)))
     for cfg in ["config/accounts.json", "config/category_mapping.json", "config/category_mapping_income.json"]:
         mapping.append((cfg, cfg))
-    mapping.append(("templates/template.xls", "templates/template.xls"))
     return mapping
 
 

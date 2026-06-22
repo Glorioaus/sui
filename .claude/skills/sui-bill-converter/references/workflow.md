@@ -4,7 +4,7 @@
 
 使用 Python 3.11。仓库通过 `.python-version` 记录推荐版本。
 
-本 skill 自包含：包内 `engine/`、`config/`、`templates/` 是宿主同名目录的快照副本，可脱离宿主仓库独立运行。`run_conversion.py` 优先用包内引擎，找不到才回退宿主 `src/`。
+本 skill 自包含：包内 `engine/`、`config/` 是宿主同名目录的快照副本，可脱离宿主仓库独立运行。`run_conversion.py` 优先用包内引擎，找不到才回退宿主 `src/`。
 
 依赖由运行环境提供（本地按 `requirements.txt` 安装，平台由镜像预置）。skill 不在运行时执行包管理命令。
 
@@ -53,7 +53,7 @@ output/merged_账单.xlsx
 
 ## 引擎同步
 
-修改宿主 `src/`、`config/`、`templates/` 后，必须同步到 skill 包内副本：
+修改宿主 `src/`、`config/` 后，必须同步到 skill 包内副本：
 
 ```bash
 python .claude/skills/sui-bill-converter/scripts/sync_engine.py

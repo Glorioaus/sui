@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """随手记账单转换工作流入口（自适应单入口）。
 
 寻根顺序：
@@ -47,16 +47,15 @@ def is_repo_root(path: Path) -> bool:
     return (path / "src" / "main.py").is_file() and (path / "src" / "merge.py").is_file()
 
 
-def resolve_engine(explicit_repo_root: str | None = None) -> tuple[Path, Path, Path, str]:
-    """返回 (engine_dir, config_dir, templates_dir, source_label)。
+def resolve_engine(explicit_repo_root: str | None = None) -> tuple[Path, Path, str]:
+    """返回 (engine_dir, config_dir, source_label)。
 
     优先包内 engine/，回退宿主 src/。
     """
     bundled_engine = SKILL_DIR / "engine" / "main.py"
     bundled_config = SKILL_DIR / "config"
-    bundled_templates = SKILL_DIR / "templates"
     if bundled_engine.is_file():
-        return SKILL_DIR / "engine", bundled_config, bundled_templates, "包内 engine/（自包含）"
+        return SKILL_DIR / "engine", bundled_config, "包内 engine/（自包含）"
 
     repo_root = find_repo_root(explicit_repo_root)
     if repo_root is None:
@@ -64,7 +63,7 @@ def resolve_engine(explicit_repo_root: str | None = None) -> tuple[Path, Path, P
             "找不到转换引擎：skill 包内没有 engine/main.py，也无法定位宿主仓库（含 src/main.py）。\n"
             "若在宿主仓库内运行，请确认工作目录；若在独立环境运行，请先运行 sync_engine.py 建立包内引擎。"
         )
-    return repo_root / "src", repo_root / "config", repo_root / "templates", f"宿主 {repo_root}/src/"
+    return repo_root / "src", repo_root / "config", f"宿主 {repo_root}/src/"
 
 
 def validate_config(config_dir: Path) -> None:
@@ -142,7 +141,7 @@ def main() -> int:
         config_dir = repo_root / "config"
         source_label = f"宿主 {repo_root}/src/（强制）"
     else:
-        engine_dir, config_dir, _templates_dir, source_label = resolve_engine(args.repo_root)
+        engine_dir, config_dir, source_label = resolve_engine(args.repo_root)
 
     print(f"引擎来源：{source_label}")
 

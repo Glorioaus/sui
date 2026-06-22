@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-本仓库是 Python 3.11 编写的账单转换工具，用于把银行、微信、支付宝账单转换为随手记可导入的 Excel。核心代码在 `src/`：`main.py` 是命令行入口，`merge.py` 负责合并处理，`models.py` 定义 `Transaction` 和 `BankStatement`，`excel_generator.py` 生成最终 XLSX。银行专用解析器位于 `src/parsers/`，应继承 `src/base_parser.py` 中的 `BaseParser`。配置文件在 `config/`，包括分类映射和账户映射。`templates/template.xls` 是导入模板参考。`input/` 和 `output/` 被忽略，用于本地私密账单和生成文件。
+本仓库是 Python 3.11 编写的账单转换工具，用于把银行、微信、支付宝账单转换为随手记可导入的 Excel。核心代码在 `src/`：`main.py` 是命令行入口，`merge.py` 负责合并处理，`models.py` 定义 `Transaction` 和 `BankStatement`，`excel_generator.py` 生成最终 XLSX。银行专用解析器位于 `src/parsers/`，应继承 `src/base_parser.py` 中的 `BaseParser`。配置文件在 `config/`，包括分类映射和账户映射。`input/` 和 `output/` 被忽略，用于本地私密账单和生成文件。
 
 ## Build, Test, and Development Commands
 
@@ -34,9 +34,9 @@ python -m json.tool config/accounts.json > NUL
 
 ## Skill Wrapper
 
-`.claude/skills/sui-bill-converter/` 是自包含的标准 Claude Code skill，包内 `engine/`、`config/`、`templates/` 是宿主同名目录的快照副本，可脱离宿主仓库独立运行。`run_conversion.py` 优先用包内引擎，回退宿主 `src/`。常用入口是 `python .claude/skills/sui-bill-converter/scripts/run_conversion.py --input input --output output`；直接脚本调用方式仍然有效。
+`.claude/skills/sui-bill-converter/` 是自包含的标准 Claude Code skill，包内 `engine/`、`config/` 是宿主同名目录的快照副本，可脱离宿主仓库独立运行。`run_conversion.py` 优先用包内引擎，回退宿主 `src/`。常用入口是 `python .claude/skills/sui-bill-converter/scripts/run_conversion.py --input input --output output`；直接脚本调用方式仍然有效。
 
-**引擎同步（强制）**：修改 `src/`、`config/`、`templates/` 后，必须运行 `python .claude/skills/sui-bill-converter/scripts/sync_engine.py` 同步到包内副本。仓库已配置阻断式 pre-commit hook，提交前自动检测漂移，不一致则拒绝提交。不要直接改包内 `engine/`。Skill 规范见 `docs/sui-bill-converter-claude-code-skill-spec.md`。
+**引擎同步（强制）**：修改 `src/`、`config/` 后，必须运行 `python .claude/skills/sui-bill-converter/scripts/sync_engine.py` 同步到包内副本。仓库已配置阻断式 pre-commit hook，提交前自动检测漂移，不一致则拒绝提交。不要直接改包内 `engine/`。Skill 规范见 `docs/sui-bill-converter-claude-code-skill-spec.md`。
 
 ## Commit & Pull Request Guidelines
 
