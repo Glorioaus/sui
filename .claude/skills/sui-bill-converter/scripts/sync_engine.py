@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """同步宿主仓库的引擎/配置/模板到 skill 包内，保持自包含副本与权威源一致。
 
 权威源：宿主仓库的 src/、config/。
