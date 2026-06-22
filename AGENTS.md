@@ -1,4 +1,4 @@
-# Repository Guidelines
+﻿# Repository Guidelines
 
 ## Project Structure & Module Organization
 
@@ -34,7 +34,9 @@ python -m json.tool config/accounts.json > NUL
 
 ## Skill Wrapper
 
-`.claude/skills/sui-bill-converter/` 提供标准 Claude Code skill，用于在本仓库中触发账单转换、诊断失败和扩展解析器。它不复制解析逻辑，底层仍调用 `src/main.py` 和 `src/merge.py`。常用入口是 `python .claude/skills/sui-bill-converter/scripts/run_conversion.py --input input --output output`；直接脚本调用方式仍然有效。Skill 规范见 `docs/sui-bill-converter-claude-code-skill-spec.md`。
+`.claude/skills/sui-bill-converter/` 是自包含的标准 Claude Code skill，包内 `engine/`、`config/`、`templates/` 是宿主同名目录的快照副本，可脱离宿主仓库独立运行。`run_conversion.py` 优先用包内引擎，回退宿主 `src/`。常用入口是 `python .claude/skills/sui-bill-converter/scripts/run_conversion.py --input input --output output`；直接脚本调用方式仍然有效。
+
+**引擎同步（强制）**：修改 `src/`、`config/`、`templates/` 后，必须运行 `python .claude/skills/sui-bill-converter/scripts/sync_engine.py` 同步到包内副本。仓库已配置阻断式 pre-commit hook，提交前自动检测漂移，不一致则拒绝提交。不要直接改包内 `engine/`。Skill 规范见 `docs/sui-bill-converter-claude-code-skill-spec.md`。
 
 ## Commit & Pull Request Guidelines
 

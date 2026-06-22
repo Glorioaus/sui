@@ -1,4 +1,4 @@
-# 解析器扩展指南
+﻿# 解析器扩展指南
 
 ## 新增解析器
 
@@ -34,6 +34,22 @@ def get_supported_extensions(self) -> list[str]:
 ```python
 (r'新银行.*\.pdf$', NewBankParser, "新银行信用卡"),
 ```
+
+## 同步到 skill 包
+
+解析器或配置改完后，必须把宿主改动同步到 skill 包内副本，否则独立平台运行会用过期引擎：
+
+```bash
+python .claude/skills/sui-bill-converter/scripts/sync_engine.py
+```
+
+阻断式 pre-commit hook 会检测漂移；也可单独检测：
+
+```bash
+python .claude/skills/sui-bill-converter/scripts/sync_engine.py --check
+```
+
+不要直接改包内 `engine/`，它是宿主的快照。
 
 ## 测试要求
 

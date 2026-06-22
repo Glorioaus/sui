@@ -1,4 +1,4 @@
-# 随手记账单格式转换工具
+﻿# 随手记账单格式转换工具
 
 将各种银行卡账单（PDF、Excel、CSV）转换为随手记可导入的Excel格式。
 
@@ -68,7 +68,15 @@ python src/main.py input/ output/
 
 ## LLM Skill 封装
 
-仓库内提供 `.claude/skills/sui-bill-converter/` 作为标准 Claude Code skill，用于在本仓库中触发账单转换、失败诊断和新增解析器工作流。Skill 不复制解析逻辑，底层仍调用现有 Python 引擎，因此直接脚本调用方式保持不变。
+仓库内提供 `.claude/skills/sui-bill-converter/` 作为**自包含**的标准 Claude Code skill。包内 `engine/`、`config/`、`templates/` 是宿主同名目录的快照副本，可脱离宿主仓库独立运行（例如部署到内部 agent 平台）。`run_conversion.py` 优先用包内引擎，回退宿主 `src/`；直接脚本调用方式保持不变。
+
+修改 `src/`、`config/`、`templates/` 后必须同步到包内副本，否则独立平台会用过期引擎：
+
+```bash
+python .claude/skills/sui-bill-converter/scripts/sync_engine.py
+```
+
+仓库已配置阻断式 pre-commit hook，提交前自动检测漂移。
 
 ```bash
 python .claude/skills/sui-bill-converter/scripts/run_conversion.py --input input --output output

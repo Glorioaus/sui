@@ -1,12 +1,12 @@
-# 工作流
+﻿# 工作流
 
 ## 环境
 
 使用 Python 3.11。仓库通过 `.python-version` 记录推荐版本。
 
-平台运行时应由镜像或任务环境预置依赖。上传到平台的 skill 不负责安装依赖，也不在运行时执行包管理命令。
+本 skill 自包含：包内 `engine/`、`config/`、`templates/` 是宿主同名目录的快照副本，可脱离宿主仓库独立运行。`run_conversion.py` 优先用包内引擎，找不到才回退宿主 `src/`。
 
-本地开发时可按仓库 README 或 `start.ps1` 准备虚拟环境。
+依赖由运行环境提供（本地按 `requirements.txt` 安装，平台由镜像预置）。skill 不在运行时执行包管理命令。
 
 ## 校验配置
 
@@ -50,6 +50,16 @@ python src/merge.py output/
 ```text
 output/merged_账单.xlsx
 ```
+
+## 引擎同步
+
+修改宿主 `src/`、`config/`、`templates/` 后，必须同步到 skill 包内副本：
+
+```bash
+python .claude/skills/sui-bill-converter/scripts/sync_engine.py
+```
+
+阻断式 pre-commit hook 会在提交前检测漂移，不一致则拒绝提交。
 
 ## 排障清单
 
